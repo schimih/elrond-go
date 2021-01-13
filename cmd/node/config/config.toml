@@ -224,9 +224,9 @@
 [SmartContractsStorage]
     [SmartContractsStorage.Cache]
         Name = "SmartContractsStorage"
-        Capacity = 1000
+        Capacity = 3
         Type = "SizeLRU"
-        SizeInBytes = 52428800 #50MB
+        SizeInBytes = 524288 #500KB
     [SmartContractsStorage.DB]
         FilePath = "SmartContractsStorage"
         Type = "LvlDBSerial"
@@ -371,9 +371,9 @@
 
 [SmartContractDataPool]
     Name = "SmartContractDataPool"
-    Capacity = 900000
+    Capacity = 5
     Type = "SizeLRU"
-    SizeInBytes = 419430400 #400MB
+    SizeInBytes = 419430 #400KB
 
 [WhiteListPool]
     Name = "WhiteListPool"
