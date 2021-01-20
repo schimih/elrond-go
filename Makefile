@@ -72,7 +72,7 @@ endif
 	#go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@...
 	#When referencing a released version, use this instead:
 	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@v1.0.7-q1
-	#go build -o ${ARWEN_PATH} github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen
+	go build -o ${ARWEN_PATH} github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen
 	stat ${ARWEN_PATH}
 
 cli-docs:
