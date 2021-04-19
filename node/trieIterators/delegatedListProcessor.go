@@ -85,9 +85,11 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 		return err
 	}
 
-	var value *big.Int
+	var activeValue *big.Int
+	var unclaimedRewards *big.Int
+	var undelegatedValue *big.Int
 	for _, delegatorAddress := range delegatorsList {
-		value, err = dlp.getActiveFund(delegationSC, delegatorAddress)
+		activeValue, unclaimedRewards, undelegatedValue, err = dlp.getActiveFund(delegationSC, delegatorAddress)
 		if err != nil {
 			//delegatorAddress byte slice might not represent a real delegator address
 			continue
@@ -96,19 +98,27 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 		delegatorInfo, ok := delegatorsMap[string(delegatorAddress)]
 		if !ok {
 			delegatorInfo = &api.Delegator{
-				DelegatorAddress: dlp.publicKeyConverter.Encode(delegatorAddress),
-				DelegatedTo:      make([]*api.DelegatedValue, 0),
-				TotalAsBigInt:    big.NewInt(0),
+				DelegatorAddress:    dlp.publicKeyConverter.Encode(delegatorAddress),
+				DelegatedTo:         make([]*api.DelegatedValue, 0),
+				TotalAsBigInt:       big.NewInt(0),
+				UnclaimedAsBigInt:   big.NewInt(0),
+				UndelegatedAsBigInt: big.NewInt(0),
 			}
 
 			delegatorsMap[string(delegatorAddress)] = delegatorInfo
 		}
 
-		delegatorInfo.TotalAsBigInt = big.NewInt(0).Add(delegatorInfo.TotalAsBigInt, value)
+		delegatorInfo.TotalAsBigInt = big.NewInt(0).Add(delegatorInfo.TotalAsBigInt, activeValue)
+		delegatorInfo.UnclaimedAsBigInt = big.NewInt(0).Add(delegatorInfo.UnclaimedAsBigInt, unclaimedRewards)
+		delegatorInfo.UndelegatedAsBigInt = big.NewInt(0).Add(delegatorInfo.UndelegatedAsBigInt, undelegatedValue)
 		delegatorInfo.Total = delegatorInfo.TotalAsBigInt.String()
+		delegatorInfo.UnclaimedTotal = delegatorInfo.UnclaimedAsBigInt.String()
+		delegatorInfo.UndelegatedTotal = delegatorInfo.UndelegatedAsBigInt.String()
 		delegatorInfo.DelegatedTo = append(delegatorInfo.DelegatedTo, &api.DelegatedValue{
 			DelegationScAddress: dlp.publicKeyConverter.Encode(delegationSC),
-			Value:               value.String(),
+			Value:               activeValue.String(),
+			UnclaimedRewards:    unclaimedRewards.String(),
+			UndelegatedValue:    undelegatedValue.String(),
 		})
 	}
 
@@ -145,10 +155,10 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte) ([][]b
 	return delegators, nil
 }
 
-func (dlp *delegatedListProcessor) getActiveFund(delegationSC []byte, delegator []byte) (*big.Int, error) {
+func (dlp *delegatedListProcessor) getActiveFund(delegationSC []byte, delegator []byte) (*big.Int, *big.Int, *big.Int, error) {
 	scQuery := &process.SCQuery{
 		ScAddress:  delegationSC,
-		FuncName:   "getUserActiveStake",
+		FuncName:   "getDelegatorFundsData",
 		CallerAddr: delegationSC,
 		CallValue:  big.NewInt(0),
 		Arguments:  [][]byte{delegator},
@@ -156,19 +166,21 @@ func (dlp *delegatedListProcessor) getActiveFund(delegationSC []byte, delegator 
 
 	vmOutput, err := dlp.queryService.ExecuteQuery(scQuery)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, fmt.Errorf("%w, return code: %v, message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
+		return nil, nil, nil, fmt.Errorf("%w, return code: %v, message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
 	}
 
-	if len(vmOutput.ReturnData) != 1 {
-		return nil, fmt.Errorf("%w, getActiveFund function should have returned one value", epochStart.ErrExecutingSystemScCode)
+	if len(vmOutput.ReturnData) != 4 {
+		return nil, nil, nil, fmt.Errorf("%w, getDelegatorFundsData function should have returned one value", epochStart.ErrExecutingSystemScCode)
 	}
 
-	value := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+	activeValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+	unclaimedRewards := big.NewInt(0).SetBytes(vmOutput.ReturnData[1])
+	undelegatedValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[2])
 
-	return value, nil
+	return activeValue, unclaimedRewards, undelegatedValue, nil
 }
 
 func (dlp *delegatedListProcessor) mapToSlice(mapDelegators map[string]*api.Delegator) []*api.Delegator {

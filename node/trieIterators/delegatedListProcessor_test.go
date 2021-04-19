@@ -106,12 +106,12 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 				return &vmcommon.VMOutput{
 					ReturnData: delegationSc,
 				}, nil
-			case "getUserActiveStake":
+			case "getDelegatorFundsData":
 				for index, delegator := range delegators {
 					if bytes.Equal(delegator, query.Arguments[0]) {
 						value := big.NewInt(int64(index + 1))
 						return &vmcommon.VMOutput{
-							ReturnData: [][]byte{value.Bytes()},
+							ReturnData: [][]byte{value.Bytes(), value.Bytes(), value.Bytes(), value.Bytes()},
 						}, nil
 					}
 				}
@@ -144,14 +144,22 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 			{
 				DelegationScAddress: arg.PublicKeyConverter.Encode(delegationSc[0]),
 				Value:               "1",
+				UnclaimedRewards:    "1",
+				UndelegatedValue:    "1",
 			},
 			{
 				DelegationScAddress: arg.PublicKeyConverter.Encode(delegationSc[1]),
 				Value:               "1",
+				UnclaimedRewards:    "1",
+				UndelegatedValue:    "1",
 			},
 		},
-		Total:         "2",
+		Total:            "2",
+		UnclaimedTotal:   "2",
+		UndelegatedTotal: "2",
 		TotalAsBigInt: big.NewInt(2),
+		UnclaimedAsBigInt: big.NewInt(2),
+		UndelegatedAsBigInt: big.NewInt(2),
 	}
 
 	expectedDelegator2 := api.Delegator{
@@ -160,14 +168,22 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 			{
 				DelegationScAddress: arg.PublicKeyConverter.Encode(delegationSc[0]),
 				Value:               "2",
+				UnclaimedRewards:    "2",
+				UndelegatedValue:    "2",
 			},
 			{
 				DelegationScAddress: arg.PublicKeyConverter.Encode(delegationSc[1]),
 				Value:               "2",
+				UnclaimedRewards:    "2",
+				UndelegatedValue:    "2",
 			},
 		},
-		Total:         "4",
+		Total:            "4",
+		UnclaimedTotal:   "4",
+		UndelegatedTotal: "4",
 		TotalAsBigInt: big.NewInt(4),
+		UnclaimedAsBigInt: big.NewInt(4),
+		UndelegatedAsBigInt: big.NewInt(4),
 	}
 
 	assert.Equal(t, []*api.Delegator{&expectedDelegator1, &expectedDelegator2}, delegatorsValues)
