@@ -46,6 +46,35 @@ func (csp *commonStakingProcessor) getValidatorInfoFromSC(validatorAddress []byt
 	return totalStakedValue, topUpValue, nil
 }
 
+func (csp *commonStakingProcessor) getValidatorUnstakedValue(validatorAddress []byte) (*big.Int, error) {
+	scQuery := &process.SCQuery{
+		ScAddress:  vm.ValidatorSCAddress,
+		FuncName:   "getUnStakedTokensList",
+		CallerAddr: vm.ValidatorSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{validatorAddress},
+	}
+
+	vmOutput, err := csp.queryService.ExecuteQuery(scQuery)
+	if err != nil {
+		return nil, err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return nil, fmt.Errorf("%w, return code: %v, message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
+	}
+
+	if len(vmOutput.ReturnData) % 2 != 0 {
+		return nil, fmt.Errorf("%w, getUnStakedTokensList function should have an even number of values", epochStart.ErrExecutingSystemScCode)
+	}
+
+	unstakedValue := big.NewInt(0)
+	for i := 0; i < len(vmOutput.ReturnData); i+=2 {
+		unstakedValue.Add(unstakedValue, big.NewInt(0).SetBytes(vmOutput.ReturnData[i]))
+	}
+
+	return unstakedValue, nil
+}
+
 func (csp *commonStakingProcessor) getAccount(scAddress []byte) (state.UserAccountHandler, error) {
 	currentHeader := csp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
