@@ -22,3 +22,6 @@ var ErrNodeNotInitialized = errors.New("the node is not fully initialized")
 
 // ErrNilMutex signals that a nil mutex has been provided
 var ErrNilMutex = errors.New("nil mutex")
+
+// ErrNilMarshalizer signals that a nil marshalizer has been provided
+var ErrNilMarshalizer = errors.New("nil marshalizer")

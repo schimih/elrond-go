@@ -19,3 +19,6 @@ var ErrNilDirectStakeListHandler = errors.New("nil direct stake list handler")
 
 // ErrNilDelegatedListHandler signals that a nil delegated list handler has been provided
 var ErrNilDelegatedListHandler = errors.New("nil delegated list handler")
+
+// ErrNilAccountListHandler signals that a nil delegated list handler has been provided
+var ErrNilAccountListHandler = errors.New("nil account list handler")

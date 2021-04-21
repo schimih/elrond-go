@@ -79,6 +79,7 @@ type Delegator struct {
 
 // Account holds the balance and relevant info for an account listing
 type Account struct {
-	Address string   `json:"address"`
-	Balance *big.Int `json:"balance"`
+	Address         string   `json:"address"`
+	Balance         string   `json:"balance"`
+	BalanceAsBigInt *big.Int `json:"-"`
 }

@@ -161,6 +161,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		QueryService:       tpn.SCQueryService,
 		BlockChain:         tpn.BlockChain,
 		PublicKeyConverter: TestAddressPubkeyConverter,
+		Marshalizer:        TestMarshalizer,
 	}
 	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
 	log.LogIfError(err)
@@ -171,6 +172,9 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
 	log.LogIfError(err)
 
+	accountListHandler, err := factory.CreateAccountsListHandler(args)
+	log.LogIfError(err)
+
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          tpn.SCQueryService,
 		StatusMetricsHandler:    &mock.StatusMetricsStub{},
@@ -178,6 +182,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		TotalStakedValueHandler: totalStakedValueHandler,
 		DirectStakedListHandler: directStakedListHandler,
 		DelegatedListHandler:    delegatedListHandler,
+		AccountListHandler:      accountListHandler,
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)

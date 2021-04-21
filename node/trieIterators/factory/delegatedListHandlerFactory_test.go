@@ -36,6 +36,7 @@ func TestCreateDelegatedListHandlerHandler_DelegatedListProcessor(t *testing.T) 
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
 		BlockChain:         &mock.BlockChainMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
+		Marshalizer:        &mock.MarshalizerMock{},
 	}
 
 	delegatedListHandler, err := CreateDelegatedListHandler(args)

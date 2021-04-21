@@ -16,6 +16,7 @@ type NodeApiResolver struct {
 	totalStakedValueHandler TotalStakedValueHandler
 	directStakedListHandler DirectStakedListHandler
 	delegatedListHandler    DelegatedListHandler
+	accountListHandler      AccountsListHandler
 }
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
@@ -26,6 +27,7 @@ type ArgNodeApiResolver struct {
 	TotalStakedValueHandler TotalStakedValueHandler
 	DirectStakedListHandler DirectStakedListHandler
 	DelegatedListHandler    DelegatedListHandler
+	AccountListHandler      AccountsListHandler
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
@@ -48,6 +50,9 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*NodeApiResolver, error) {
 	if check.IfNil(arg.DelegatedListHandler) {
 		return nil, ErrNilDelegatedListHandler
 	}
+	if check.IfNil(arg.AccountListHandler) {
+		return nil, ErrNilAccountListHandler
+	}
 
 	return &NodeApiResolver{
 		scQueryService:          arg.SCQueryService,
@@ -56,6 +61,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*NodeApiResolver, error) {
 		totalStakedValueHandler: arg.TotalStakedValueHandler,
 		directStakedListHandler: arg.DirectStakedListHandler,
 		delegatedListHandler:    arg.DelegatedListHandler,
+		accountListHandler:      arg.AccountListHandler,
 	}, nil
 }
 
@@ -87,6 +93,11 @@ func (nar *NodeApiResolver) GetDirectStakedList() ([]*api.DirectStakedValue, err
 // GetDelegatorsList will return the delegators list
 func (nar *NodeApiResolver) GetDelegatorsList() ([]*api.Delegator, error) {
 	return nar.delegatedListHandler.GetDelegatorsList()
+}
+
+// GetAccountList will return the account list
+func (nar *NodeApiResolver) GetAccountList() ([]*api.Account, error) {
+	return nar.accountListHandler.GetAccountsList()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

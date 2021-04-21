@@ -16,6 +16,7 @@ type ApiResolverStub struct {
 	GetTotalStakedValueHandler        func() (*api.StakeValues, error)
 	GetDirectStakedListHandler        func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler          func() ([]*api.Delegator, error)
+	GetAccountListHandler             func() ([]*api.Account, error)
 }
 
 // ExecuteSCQuery -
@@ -51,6 +52,15 @@ func (ars *ApiResolverStub) GetDirectStakedList() ([]*api.DirectStakedValue, err
 func (ars *ApiResolverStub) GetDelegatorsList() ([]*api.Delegator, error) {
 	if ars.GetDelegatorsListHandler != nil {
 		return ars.GetDelegatorsListHandler()
+	}
+
+	return nil, nil
+}
+
+// GetAccountList -
+func (ars *ApiResolverStub) GetAccountList() ([]*api.Account, error) {
+	if ars.GetAccountListHandler != nil {
+		return ars.GetAccountListHandler()
 	}
 
 	return nil, nil

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -33,6 +34,7 @@ type ArgTrieIteratorProcessor struct {
 	BlockChain         data.ChainHandler
 	QueryService       process.SCQueryService
 	PublicKeyConverter core.PubkeyConverter
+	Marshalizer        marshal.Marshalizer
 }
 
 // NewTotalStakedValueProcessor will create a new instance of stakedValuesProc
@@ -64,6 +66,9 @@ func checkArguments(arg ArgTrieIteratorProcessor) error {
 	}
 	if check.IfNil(arg.PublicKeyConverter) {
 		return ErrNilPubkeyConverter
+	}
+	if check.IfNil(arg.Marshalizer) {
+		return ErrNilMarshalizer
 	}
 	if arg.Accounts.Mutex == nil {
 		return fmt.Errorf("%w in NewTotalStakedValueProcessor", ErrNilMutex)

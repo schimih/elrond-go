@@ -48,3 +48,9 @@ type DelegatedListHandler interface {
 	GetDelegatorsList() ([]*api.Delegator, error)
 	IsInterfaceNil() bool
 }
+
+// AccountsListHandler defines the methods needed to return a complete list of accounts
+type AccountsListHandler interface {
+	GetAccountsList() ([]*api.Account, error)
+	IsInterfaceNil() bool
+}

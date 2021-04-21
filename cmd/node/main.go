@@ -2568,6 +2568,7 @@ func createApiResolver(
 		PublicKeyConverter: pubkeyConv,
 		BlockChain:         blockChain,
 		QueryService:       scQueryService,
+		Marshalizer:        marshalizer,
 	}
 	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(args)
 	if err != nil {
@@ -2584,6 +2585,11 @@ func createApiResolver(
 		return nil, err
 	}
 
+	accountListHandler, err := trieIteratorsFactory.CreateAccountsListHandler(args)
+	if err != nil {
+		return nil, err
+	}
+
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          scQueryService,
 		StatusMetricsHandler:    statusMetrics,
@@ -2591,6 +2597,7 @@ func createApiResolver(
 		TotalStakedValueHandler: totalStakedValueHandler,
 		DirectStakedListHandler: directStakedListHandler,
 		DelegatedListHandler:    delegatedListHandler,
+		AccountListHandler:      accountListHandler,
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)

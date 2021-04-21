@@ -36,6 +36,7 @@ func TestCreateDirectStakedListHandlerHandler_DirectStakedListProcessor(t *testi
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
 		BlockChain:         &mock.BlockChainMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
+		Marshalizer:        &mock.MarshalizerMock{},
 	}
 
 	directStakedListHandler, err := CreateDirectStakedListHandler(args)

@@ -97,6 +97,7 @@ type ApiResolver interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
+	GetAccountList() ([]*api.Account, error)
 	IsInterfaceNil() bool
 }
 

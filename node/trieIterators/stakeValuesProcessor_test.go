@@ -34,6 +34,7 @@ func createMockArgs() ArgTrieIteratorProcessor {
 		BlockChain:         &mock.BlockChainMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
+		Marshalizer:        &mock.MarshalizerMock{},
 	}
 }
 
