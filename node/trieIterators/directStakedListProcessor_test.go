@@ -80,6 +80,11 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 						}, nil
 					}
 				}
+			case "getUnStakedTokensList":
+				return &vmcommon.VMOutput{
+					ReturnCode: vmcommon.Ok,
+					ReturnData: [][]byte{},
+				}, nil
 			}
 
 			return nil, fmt.Errorf("not an expected call")
@@ -105,16 +110,18 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	require.Equal(t, 2, len(directStakedList))
 
 	expectedDirectStake1 := api.DirectStakedValue{
-		Address: arg.PublicKeyConverter.Encode(validators[0]),
-		Staked:  "10",
-		TopUp:   "1",
-		Total:   "11",
+		Address:  arg.PublicKeyConverter.Encode(validators[0]),
+		Staked:   "10",
+		TopUp:    "1",
+		Total:    "11",
+		Unstaked: "0",
 	}
 	expectedDirectStake2 := api.DirectStakedValue{
-		Address: arg.PublicKeyConverter.Encode(validators[1]),
-		Staked:  "20",
-		TopUp:   "2",
-		Total:   "22",
+		Address:  arg.PublicKeyConverter.Encode(validators[1]),
+		Staked:   "20",
+		TopUp:    "2",
+		Total:    "22",
+		Unstaked: "0",
 	}
 
 	assert.Equal(t, []*api.DirectStakedValue{&expectedDirectStake1, &expectedDirectStake2}, directStakedList)

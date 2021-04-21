@@ -50,10 +50,11 @@ type StakeValues struct {
 
 // DirectStakedValue holds the total staked value for an address
 type DirectStakedValue struct {
-	Address string `json:"address"`
-	Staked  string `json:"staked"`
-	TopUp   string `json:"topUp"`
-	Total   string `json:"total"`
+	Address  string `json:"address"`
+	Staked   string `json:"staked"`
+	TopUp    string `json:"topUp"`
+	Total    string `json:"total"`
+	Unstaked string `json:"unstaked"`
 }
 
 // DelegatedValue holds the value and the delegation system SC address

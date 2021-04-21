@@ -113,7 +113,7 @@ func (svp *stakedValuesProcessor) computeStakedValueAndTopUp() (*big.Int, *big.I
 			continue
 		}
 
-		totalStakedCurrentAccount, totalTopUpCurrentAccount, errGet := svp.getValidatorInfoFromSC(leafKey)
+		totalStakedCurrentAccount, totalTopUpCurrentAccount, _, errGet := svp.getValidatorInfoFromSC(leafKey)
 		if errGet != nil {
 			continue
 		}

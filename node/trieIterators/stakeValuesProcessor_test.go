@@ -2,6 +2,7 @@ package trieIterators
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"testing"
@@ -334,32 +335,42 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 	}
 	arg.QueryService = &mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-			switch string(query.Arguments[0]) {
-			case leafKey3:
+			switch query.FuncName {
+			case "getTotalStakedTopUpStakedBlsKeys":
+				switch string(query.Arguments[0]) {
+				case leafKey3:
+					return &vmcommon.VMOutput{
+						ReturnCode: vmcommon.UserError,
+					}, nil
+
+				case leafKey4:
+					return &vmcommon.VMOutput{}, nil
+
+				case leafKey5:
+					return &vmcommon.VMOutput{
+						ReturnData: [][]byte{
+							big.NewInt(50).Bytes(), big.NewInt(100).Bytes(), big.NewInt(0).Bytes(),
+						},
+					}, nil
+
+				case leafKey6:
+					return &vmcommon.VMOutput{
+						ReturnData: [][]byte{
+							big.NewInt(60).Bytes(), big.NewInt(500).Bytes(), big.NewInt(0).Bytes(),
+						},
+					}, nil
+
+				default:
+					return nil, expectedErr
+				}
+			case "getUnStakedTokensList":
 				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.UserError,
+					ReturnCode: vmcommon.Ok,
+					ReturnData: [][]byte{},
 				}, nil
-
-			case leafKey4:
-				return &vmcommon.VMOutput{}, nil
-
-			case leafKey5:
-				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{
-						big.NewInt(50).Bytes(), big.NewInt(100).Bytes(), big.NewInt(0).Bytes(),
-					},
-				}, nil
-
-			case leafKey6:
-				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{
-						big.NewInt(60).Bytes(), big.NewInt(500).Bytes(), big.NewInt(0).Bytes(),
-					},
-				}, nil
-
-			default:
-				return nil, expectedErr
 			}
+
+			return nil, fmt.Errorf("not an expected call")
 		},
 	}
 	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
