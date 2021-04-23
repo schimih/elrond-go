@@ -256,6 +256,8 @@ func (n *Node) StartConsensus() error {
 		n.watchdog = &watchdog.DisabledWatchdog{}
 	}
 
+	n.watchdog = &watchdog.DisabledWatchdog{}
+
 	chronologyHandler, err := n.createChronologyHandler(
 		n.rounder,
 		n.appStatusHandler,
