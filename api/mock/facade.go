@@ -55,6 +55,7 @@ type Facade struct {
 	GetAllIssuedESDTsCalled                 func() ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
+	GetAccountListHandler                   func() ([]*api.Account, error)
 }
 
 // GetUsername -
@@ -164,6 +165,15 @@ func (f *Facade) GetCode(account state.UserAccountHandler) []byte {
 	}
 
 	return nil
+}
+
+// GetAccountList -
+func (f *Facade) GetAccountList() ([]*api.Account, error) {
+	if f.GetAccountListHandler != nil {
+		return f.GetAccountListHandler()
+	}
+
+	return nil, nil
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method

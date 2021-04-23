@@ -388,7 +388,10 @@ func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
 	return nf.apiResolver.GetDelegatorsList()
 }
 
-
+// GetAccountList will output the full account list and their balances
+func (nf *nodeFacade) GetAccountList() ([]*apiData.Account, error) {
+	return nf.apiResolver.GetAccountList()
+}
 
 // ExecuteSCQuery retrieves data from existing SC trie
 func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {

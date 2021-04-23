@@ -27,7 +27,7 @@ type FacadeHandler interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
-	// GetAccountList() ([]*api.Account, error)
+	GetAccountList() ([]*api.Account, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetAllIssuedESDTs() ([]string, error)
 	IsInterfaceNil() bool
@@ -41,7 +41,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getESDTsPath, GetAllIssuedESDTs)
 	router.RegisterHandler(http.MethodGet, directStakedInfoPath, DirectStakedInfo)
 	router.RegisterHandler(http.MethodGet, delegatedInfoPath, DelegatedInfo)
-	// router.RegisterHandler(http.MethodGet, accountsInfoPath, AccountsInfo)
+	router.RegisterHandler(http.MethodGet, accountsInfoPath, AccountsInfo)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -235,31 +235,31 @@ func DelegatedInfo(c *gin.Context) {
 }
 
 // AccountsInfo is the endpoint that will return all the account balances
-//func AccountsInfo(c *gin.Context) {
-//	facade, ok := getFacade(c)
-//	if !ok {
-//		return
-//	}
-//
-//	accountList, err := facade.GetAccountList()
-//	if err != nil {
-//		c.JSON(
-//			http.StatusInternalServerError,
-//			shared.GenericAPIResponse{
-//				Data:  nil,
-//				Error: err.Error(),
-//				Code:  shared.ReturnCodeInternalError,
-//			},
-//		)
-//		return
-//	}
-//
-//	c.JSON(
-//		http.StatusOK,
-//		shared.GenericAPIResponse{
-//			Data:  gin.H{"list": accountList},
-//			Error: "",
-//			Code:  shared.ReturnCodeSuccess,
-//		},
-//	)
-//}
+func AccountsInfo(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	accountList, err := facade.GetAccountList()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"list": accountList},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
