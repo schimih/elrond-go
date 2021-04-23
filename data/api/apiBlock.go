@@ -44,17 +44,17 @@ type MiniBlock struct {
 
 // StakeValues is the structure that contains the total staked value and the total top up value
 type StakeValues struct {
-	TotalStaked *big.Int
-	TopUp       *big.Int
+	BaseStaked *big.Int
+	TopUp      *big.Int
 }
 
 // DirectStakedValue holds the total staked value for an address
 type DirectStakedValue struct {
-	Address  string `json:"address"`
-	Staked   string `json:"staked"`
-	TopUp    string `json:"topUp"`
-	Total    string `json:"total"`
-	Unstaked string `json:"unstaked"`
+	Address    string `json:"address"`
+	BaseStaked string `json:"baseStaked"`
+	TopUp      string `json:"topUp"`
+	Total      string `json:"total"`
+	Unstaked   string `json:"unstaked"`
 }
 
 // DelegatedValue holds the value and the delegation system SC address
