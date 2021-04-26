@@ -160,6 +160,7 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	if headerHandler.GetNonce() == 142231 {
+		log.Info("sleeping for 24h...")
 		time.Sleep(time.Hour * 24)
 	}
 	err := mp.checkBlockValidity(headerHandler, bodyHandler)
