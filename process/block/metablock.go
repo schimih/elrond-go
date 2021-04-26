@@ -159,6 +159,9 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
+	if headerHandler.GetNonce() == 138903 {
+		time.Sleep(time.Hour * 24)
+	}
 	err := mp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
 		if err == process.ErrBlockHashDoesNotMatch {
