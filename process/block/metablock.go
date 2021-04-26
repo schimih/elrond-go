@@ -158,8 +158,8 @@ func (mp *metaProcessor) ProcessBlock(
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
-	time.Sleep(time.Hour * 24)
-	if headerHandler.GetNonce() == 3832359 {
+	// time.Sleep(time.Hour * 24)
+	if headerHandler.GetNonce() == 3846684 {
 		log.Info("sleeping for 24h...")
 		time.Sleep(time.Hour * 24)
 	}
