@@ -110,7 +110,7 @@ func (sp *shardProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-
+	time.Sleep(time.Hour * 24)
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
