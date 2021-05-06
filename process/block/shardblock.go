@@ -110,13 +110,13 @@ func (sp *shardProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-	time.Sleep(time.Hour * 24)
+	// time.Sleep(time.Hour * 24)
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
 
 	lastCrossNotarizedHeader, _, _ := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
-	if lastCrossNotarizedHeader.GetNonce() == 3860999 {
+	if lastCrossNotarizedHeader.GetNonce() == 3875350 {
 		log.Info("sleeping for 24h...")
 		time.Sleep(time.Hour * 24)
 	}
