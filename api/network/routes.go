@@ -17,6 +17,9 @@ const (
 	getStatusPath        = "/status"
 	economicsPath        = "/economics"
 	getESDTsPath         = "/esdts"
+	getFFTsPath          = "/esdt/fungible-tokens"
+	getSFTsPath          = "/esdt/semi-fungible-tokens"
+	getNFTsPath          = "/esdt/non-fungible-tokens"
 	directStakedInfoPath = "/direct-staked-info"
 	delegatedInfoPath    = "/delegated-info"
 	accountsInfoPath    = "/accounts-info"
@@ -29,7 +32,7 @@ type FacadeHandler interface {
 	GetDelegatorsList() ([]*api.Delegator, error)
 	GetAccountList() ([]*api.Account, error)
 	StatusMetrics() external.StatusMetricsHandler
-	GetAllIssuedESDTs() ([]string, error)
+	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	IsInterfaceNil() bool
 }
 
@@ -38,7 +41,10 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
-	router.RegisterHandler(http.MethodGet, getESDTsPath, GetAllIssuedESDTs)
+	router.RegisterHandler(http.MethodGet, getESDTsPath, getHandlerFuncForEsdt(""))
+	router.RegisterHandler(http.MethodGet, getFFTsPath, getHandlerFuncForEsdt(core.FungibleESDT))
+	router.RegisterHandler(http.MethodGet, getSFTsPath, getHandlerFuncForEsdt(core.SemiFungibleESDT))
+	router.RegisterHandler(http.MethodGet, getNFTsPath, getHandlerFuncForEsdt(core.NonFungibleESDT))
 	router.RegisterHandler(http.MethodGet, directStakedInfoPath, DirectStakedInfo)
 	router.RegisterHandler(http.MethodGet, delegatedInfoPath, DelegatedInfo)
 	router.RegisterHandler(http.MethodGet, accountsInfoPath, AccountsInfo)
@@ -144,34 +150,35 @@ func EconomicsMetrics(c *gin.Context) {
 	)
 }
 
-// GetAllIssuedESDTs returns all the issued esdts from the metachain
-func GetAllIssuedESDTs(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
+func getHandlerFuncForEsdt(tokenType string) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		facade, ok := getFacade(c)
+		if !ok {
+			return
+		}
 
-	tokens, err := facade.GetAllIssuedESDTs()
-	if err != nil {
+		tokens, err := facade.GetAllIssuedESDTs(tokenType)
+		if err != nil {
+			c.JSON(
+				http.StatusInternalServerError,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: err.Error(),
+					Code:  shared.ReturnCodeInternalError,
+				},
+			)
+			return
+		}
+
 		c.JSON(
-			http.StatusInternalServerError,
+			http.StatusOK,
 			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: err.Error(),
-				Code:  shared.ReturnCodeInternalError,
+				Data:  gin.H{"tokens": tokens},
+				Error: "",
+				Code:  shared.ReturnCodeSuccess,
 			},
 		)
-		return
 	}
-
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"tokens": tokens},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
 }
 
 // DirectStakedInfo is the endpoint that will return the directed staked info list
