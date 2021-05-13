@@ -158,7 +158,7 @@ func (mp *metaProcessor) ProcessBlock(
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
-	// time.Sleep(time.Hour * 24)
+	time.Sleep(time.Hour * 24)
 	if headerHandler.GetTimeStamp() >= 1619970582 {
 		log.Info("sleeping for 24h...")
 		time.Sleep(time.Hour * 24)
