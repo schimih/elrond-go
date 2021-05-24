@@ -43,7 +43,7 @@ func TestScCallShouldWork(t *testing.T) {
 		require.Nil(t, err)
 
 		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
 		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -96,7 +96,7 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(10000), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -139,7 +139,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(20970), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -218,7 +218,7 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(11170), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
