@@ -491,6 +491,9 @@ var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 // ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
 var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
 
+// ErrEmptyEpochRewardsConfig signals that the epoch rewards config is empty
+var ErrEmptyEpochRewardsConfig = errors.New("the epoch rewards config is empty")
+
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
@@ -976,3 +979,18 @@ var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost 
 
 // ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built in functions cost handler has been provided
 var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")
+
+// ErrNilLocker signals that a nil locker was provided
+var ErrNilLocker = errors.New("nil locker")
+
+// ErrInvalidVersionOnEpochValues signals that the version element is not accepted because the epoch values are invalid
+var ErrInvalidVersionOnEpochValues = errors.New("invalid version provided on epoch values")
+
+// ErrEmptyVersionsByEpochsList signals that an empty versions by epochs list was provided
+var ErrEmptyVersionsByEpochsList = errors.New("empty versions by epochs list")
+
+// ErrInvalidVersionStringTooLong signals that the version element is not accepted because it contains too large strings
+var ErrInvalidVersionStringTooLong = errors.New("invalid version provided: string too large")
+
+// ErrArwenOutOfProcessUnsupported signals that the version of Arwen does not support out-of-process instantiation
+var ErrArwenOutOfProcessUnsupported = errors.New("out-of-process Arwen instance not supported")

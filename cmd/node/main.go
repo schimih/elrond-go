@@ -909,6 +909,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ShuffleBetweenShards:           true,
 		MaxNodesEnableConfig:           generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
 		BalanceWaitingListsEnableEpoch: generalConfig.GeneralSettings.BalanceWaitingListsEnableEpoch,
+		WaitingListFixEnableEpoch:      generalConfig.GeneralSettings.WaitingListFixEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
@@ -1139,6 +1140,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanStopNodeProcess,
 		bootstrapParameters,
 		currentEpoch,
+		generalConfig.GeneralSettings.WaitingListFixEnableEpoch,
 	)
 	if err != nil {
 		return err
@@ -1292,6 +1294,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	arwenLocker := &sync.RWMutex{}
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
@@ -1334,6 +1337,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		tpsBenchmark,
 		historyRepository,
 		epochNotifier,
+		arwenLocker,
 		txSimulatorProcessorArgs,
 		ctx.GlobalString(importDbDirectory.Name),
 		chanStopNodeProcess,
@@ -1475,6 +1479,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		arwenLocker,
 		apiWorkingDir,
 		stateComponents.AccountsAdapterAPI,
 	)
@@ -1923,6 +1928,7 @@ func createNodesCoordinator(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	bootstrapParameters bootstrap.Parameters,
 	startEpoch uint32,
+	waitingListFixEnabledEpoch uint32,
 ) (sharding.NodesCoordinator, update.Closer, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -2018,22 +2024,23 @@ func createNodesCoordinator(
 	}
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Marshalizer:             marshalizer,
-		Hasher:                  hasher,
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartNotifier,
-		BootStorer:              bootStorer,
-		ShardIDAsObserver:       shardIDAsObserver,
-		NbShards:                nbShards,
-		EligibleNodes:           eligibleValidators,
-		WaitingNodes:            waitingValidators,
-		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      shuffledOutHandler,
-		Epoch:                   currentEpoch,
-		StartEpoch:              startEpoch,
+		ShardConsensusGroupSize:    shardConsensusGroupSize,
+		MetaConsensusGroupSize:     metaConsensusGroupSize,
+		Marshalizer:                marshalizer,
+		Hasher:                     hasher,
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartNotifier,
+		BootStorer:                 bootStorer,
+		ShardIDAsObserver:          shardIDAsObserver,
+		NbShards:                   nbShards,
+		EligibleNodes:              eligibleValidators,
+		WaitingNodes:               waitingValidators,
+		SelfPublicKey:              pubKeyBytes,
+		ConsensusGroupCache:        consensusGroupCache,
+		ShuffledOutHandler:         shuffledOutHandler,
+		Epoch:                      currentEpoch,
+		StartEpoch:                 startEpoch,
+		WaitingListFixEnabledEpoch: waitingListFixEnabledEpoch,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -2507,6 +2514,7 @@ func createApiResolver(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenLocker process.Locker,
 	workingDir string,
 	accountsAPI state.AccountsAdapter,
 ) (facade.ApiResolver, error) {
@@ -2529,6 +2537,7 @@ func createApiResolver(
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		arwenLocker,
 		workingDir,
 	)
 	if err != nil {
@@ -2627,6 +2636,7 @@ func createScQueryService(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenLocker process.Locker,
 	workingDir string,
 ) (process.SCQueryService, error) {
 	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVMs
@@ -2655,6 +2665,7 @@ func createScQueryService(
 			systemSCConfig,
 			rater,
 			epochNotifier,
+			arwenLocker,
 			workingDir,
 			i,
 		)
@@ -2693,6 +2704,7 @@ func createScQueryElement(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenChangeLocker process.Locker,
 	workingDir string,
 	index int,
 ) (process.SCQueryService, error) {
@@ -2746,6 +2758,7 @@ func createScQueryElement(
 			ValidatorAccountsDB: validatorAccounts,
 			ChanceComputer:      rater,
 			EpochNotifier:       epochNotifier,
+			ShardCoordinator:    shardCoordinator,
 		}
 		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
@@ -2762,7 +2775,8 @@ func createScQueryElement(
 			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
-			ArwenESDTFunctionsEnableEpoch:  generalConfig.GeneralSettings.ArwenESDTFunctionsEnableEpoch,
+			ArwenChangeLocker:              arwenChangeLocker,
+			EpochNotifier:                  epochNotifier,
 		}
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)

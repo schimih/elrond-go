@@ -302,6 +302,7 @@ type TestProcessorNode struct {
 	PenalizedTooMuchGasEnableEpoch    uint32
 	BlockGasAndFeesReCheckEnableEpoch uint32
 	UseValidVmBlsSigVerifier          bool
+	ArwenChangeLocker                 process.Locker
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -828,13 +829,17 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			ValidatorAccountsDB: tpn.PeerState,
 			ChanceComputer:      tpn.NodesCoordinator,
 			EpochNotifier:       tpn.EpochNotifier,
+			ShardCoordinator:    tpn.ShardCoordinator,
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config: config.VirtualMachineConfig{
 				OutOfProcessEnabled: true,
-				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+				},
 			},
 			BlockGasLimit:                  tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
 			GasSchedule:                    gasSchedule,
@@ -842,6 +847,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			DeployEnableEpoch:              0,
 			AheadOfTimeGasUsageEnableEpoch: 0,
 			ArwenV3EnableEpoch:             0,
+			EpochNotifier:                  tpn.EpochNotifier,
+			ArwenChangeLocker:              tpn.ArwenChangeLocker,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -926,12 +933,16 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 			},
 		},
 		RewardsSettings: config.RewardsSettings{
-			LeaderPercentage:                 0.1,
-			DeveloperPercentage:              0.1,
-			ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
-			TopUpFactor:                      0.25,
-			TopUpGradientPoint:               "300000000000000000000",
-			ProtocolSustainabilityPercentage: 0.1,
+			RewardsConfigByEpoch: []config.EpochRewardSettings{
+				{
+					LeaderPercentage:                 0.1,
+					DeveloperPercentage:              0.1,
+					ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+					TopUpFactor:                      0.25,
+					TopUpGradientPoint:               "300000000000000000000",
+					ProtocolSustainabilityPercentage: 0.1,
+				},
+			},
 		},
 		FeeSettings: config.FeeSettings{
 			MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -1222,6 +1233,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 }
 
 func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]uint64) {
+	tpn.ArwenChangeLocker = &sync.RWMutex{}
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.initMetaInnerProcessors()
 		return
@@ -1300,7 +1312,10 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: false,
-			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
 		},
 		BlockGasLimit:                  maxGasLimitPerBlock,
 		GasSchedule:                    gasSchedule,
@@ -1308,6 +1323,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		EpochNotifier:                  tpn.EpochNotifier,
+		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1358,6 +1375,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DeployEnableEpoch:              tpn.DeployEnableEpoch,
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
+		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
@@ -1536,6 +1554,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ValidatorAccountsDB: tpn.PeerState,
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       tpn.EpochNotifier,
+		ShardCoordinator:    tpn.ShardCoordinator,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
@@ -1577,6 +1596,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		DeployEnableEpoch:              tpn.DeployEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
+		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)

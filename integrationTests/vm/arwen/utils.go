@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -167,12 +168,16 @@ func (context *TestContext) initFeeHandlers() {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:                 0.1,
-				DeveloperPercentage:              0.0,
-				ProtocolSustainabilityPercentage: 0,
-				ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
-				TopUpGradientPoint:               "1000000",
-				TopUpFactor:                      0,
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						DeveloperPercentage:              0.0,
+						ProtocolSustainabilityPercentage: 0,
+						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+						TopUpGradientPoint:               "1000000",
+						TopUpFactor:                      0,
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -224,7 +229,10 @@ func (context *TestContext) initVMAndBlockchainHook() {
 
 	vmFactoryConfig := config.VirtualMachineConfig{
 		OutOfProcessEnabled: false,
-		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+		},
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -235,6 +243,8 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+		ArwenChangeLocker:              &sync.RWMutex{},
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -278,10 +288,11 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions: context.BlockchainHook.GetBuiltInFunctions(),
-		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		BuiltInFunctions:  context.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		EpochNotifier:     forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker: &sync.RWMutex{},
 	}
 	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	context.ScProcessor = smartContract.NewTestScProcessor(sc)

@@ -38,6 +38,18 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 
+	vmConfig := VirtualMachineConfig{
+		OutOfProcessEnabled: false,
+		OutOfProcessConfig: VirtualMachineOutOfProcessConfig{
+			LogsMarshalizer:     "json",
+			MessagesMarshalizer: "json",
+			MaxLoopTime:         1000,
+		},
+		ArwenVersions: []ArwenVersionByEpoch{
+			{StartEpoch: 12, Version: "v0.3", OutOfProcessSupported: true},
+			{StartEpoch: 88, Version: "v1.2", OutOfProcessSupported: false},
+		},
+	}
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
@@ -83,8 +95,15 @@ func TestTomlParser(t *testing.T) {
 		Consensus: TypeConfig{
 			Type: consensusType,
 		},
+		VirtualMachine: VirtualMachineServicesConfig{
+			Execution: vmConfig,
+			Querying: QueryVirtualMachineConfig{
+				NumConcurrentVMs:     16,
+				VirtualMachineConfig: vmConfig,
+			},
+		},
 	}
-
+	cfgExpected.VirtualMachine.Querying.OutOfProcessEnabled = true
 	testString := `
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -128,6 +147,29 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
 	Type = "` + consensusType + `"
 
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        OutOfProcessEnabled = false
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
+            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+        ]
+        [VirtualMachine.Execution.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
+    [VirtualMachine.Querying]
+        NumConcurrentVMs = 16
+        OutOfProcessEnabled = true
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
+            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+        ]
+        [VirtualMachine.Querying.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
+
 `
 	cfg := Config{}
 
@@ -139,7 +181,10 @@ func TestTomlParser(t *testing.T) {
 
 func TestTomlEconomicsParser(t *testing.T) {
 	protocolSustainabilityPercentage := 0.1
-	leaderPercentage := 0.1
+	leaderPercentage1 := 0.1
+	leaderPercentage2 := 0.2
+	epoch0 := uint32(0)
+	epoch1 := uint32(1)
 	developerPercentage := 0.3
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
@@ -152,10 +197,22 @@ func TestTomlEconomicsParser(t *testing.T) {
 			Denomination: denomination,
 		},
 		RewardsSettings: RewardsSettings{
-			LeaderPercentage:                 leaderPercentage,
-			ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
-			ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
-			DeveloperPercentage:              developerPercentage,
+			RewardsConfigByEpoch: []EpochRewardSettings{
+				{
+					EpochEnable:                      epoch0,
+					LeaderPercentage:                 leaderPercentage1,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+				{
+					EpochEnable:                      epoch1,
+					LeaderPercentage:                 leaderPercentage2,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+			},
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
@@ -168,10 +225,20 @@ func TestTomlEconomicsParser(t *testing.T) {
 [GlobalSettings]
     Denomination = ` + fmt.Sprintf("%d", denomination) + `
 [RewardsSettings]
-    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + `
-	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
-    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
-	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch0) + `
+   	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage1) + `
+   	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+   	ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+   	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch1) + `
+	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage2) + `
+    DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+    ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
 [FeeSettings]
 	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"
