@@ -529,6 +529,8 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihgs.updateEpochFlags(newEpoch)
 
 	ihgs.mutNodesConfig.RLock()
+	//previousEpoch := newEpoch - 1
+	log.Info("nodesConfig", "epoch", ihgs.currentEpoch)
 	previousConfig := ihgs.nodesConfig[ihgs.currentEpoch]
 	if previousConfig == nil {
 		log.Error("previous nodes config is nil")
@@ -760,6 +762,8 @@ func (ihgs *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 		waitingMap[shardId] = append(waitingMap[currentValidatorShardId], currentValidator)
 		return
 	}
+
+	log.Debug("leaving node not found in eligible or waiting!")
 }
 
 // EpochStartAction is called upon a start of epoch event.
