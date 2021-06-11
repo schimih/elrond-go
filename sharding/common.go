@@ -59,21 +59,32 @@ func displayNodesConfiguration(
 		if shardID == nbShards {
 			shardID = core.MetachainShardId
 		}
+
+		log.Debug("displayNodesConfiguration eligible list", "shardId", shardID, "len", len(eligible[shardID]))
+		log.Debug("displayNodesConfiguration waiting list", "shardId", shardID, "len", len(waiting[shardID]))
+		log.Debug("displayNodesConfiguration leaving list", "shardId", shardID, "len", len(leaving[shardID]))
+	}
+
+	for shard := uint32(0); shard <= nbShards; shard++ {
+		shardID := shard
+		if shardID == nbShards {
+			shardID = core.MetachainShardId
+		}
 		for _, v := range eligible[shardID] {
 			pk := v.PubKey()
-			log.Debug("eligible", "pk", pk, "shardID", shardID)
+			log.Debug("eligible", "index", v.Index(), "shardID", shardID, "pk", pk)
 		}
 		for _, v := range waiting[shardID] {
 			pk := v.PubKey()
-			log.Debug("waiting", "pk", pk, "shardID", shardID)
+			log.Debug("waiting", "index", v.Index(), "shardID", shardID, "pk", pk)
 		}
 		for _, v := range leaving[shardID] {
 			pk := v.PubKey()
-			log.Debug("leaving", "pk", pk, "shardID", shardID)
+			log.Debug("leaving", "index", v.Index(), "shardID", shardID, "pk", pk)
 		}
 		for _, v := range actualRemaining[shardID] {
 			pk := v.PubKey()
-			log.Debug("actually remaining", "pk", pk, "shardID", shardID)
+			log.Debug("actually remaining", "index", v.Index(), "shardID", shardID, "pk", pk)
 		}
 	}
 }
