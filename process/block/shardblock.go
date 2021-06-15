@@ -116,7 +116,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	lastCrossNotarizedHeader, _, _ := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
-	if lastCrossNotarizedHeader.GetNonce() >= 4507866 {
+	if lastCrossNotarizedHeader.GetNonce() >= 4522241 {
 		log.Info("sleeping for 24h...")
 		time.Sleep(time.Hour * 24)
 	}
