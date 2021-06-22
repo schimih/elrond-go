@@ -65,7 +65,7 @@
    SaveJailedAlwaysEnableEpoch = 1
 
    # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
-   WaitingListFixEnableEpoch = 1
+   WaitingListFixEnableEpoch = 1000000
 
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
@@ -628,7 +628,7 @@
    Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 100
+    CheckpointRoundsModulus = 10000000
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
