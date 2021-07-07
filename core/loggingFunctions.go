@@ -96,11 +96,14 @@ func (grd *GoRoutinesDumper) DumpGoRoutinesToLogWithTypes() {
 
 	for _, gr := range goRoutines {
 		runningTime := currentTime.Sub(gr.FirstOccurrence).Seconds()
-		log.Debug("\nRemaining routine", "ID", gr.ID, "running seconds", runningTime)
+		if runningTime > 3600 {
+			log.Debug("\nremaining routine more than an hour", "ID", gr.ID, "running seconds", runningTime)
+		}
+		log.Debug("\nremaining routine", "ID", gr.ID, "running seconds", runningTime)
 	}
 
 	for k, val := range grd.LatestData[newRoutine] {
-		log.Debug("\nNew routine", "ID", val.ID, "\nData", val.AllData+"\n")
+		log.Debug("\nnew routine", "ID", val.ID, "\nData", val.AllData+"\n")
 		grd.LatestData[oldRoutine][k] = val
 	}
 

@@ -645,7 +645,11 @@ func (ps *PruningStorer) saveHeaderForEpochStartPrepare(header data.HeaderHandle
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 	epoch := header.GetEpoch()
-	log.Debug("PruningStorer - change epoch", "unit", ps.identifier, "epoch", epoch)
+	log.Debug("PruningStorer - change epoch",
+		"unit", ps.identifier,
+		"epoch", epoch,
+		"numOfActivePersisters", ps.numOfActivePersisters,
+		"active persisters size", len(ps.activePersisters))
 	// if pruning is not enabled, don't create new persisters, but use the same one instead
 	if !ps.pruningEnabled {
 		log.Debug("PruningStorer - change epoch - pruning is disabled")
