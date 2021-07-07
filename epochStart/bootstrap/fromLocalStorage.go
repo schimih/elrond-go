@@ -79,6 +79,7 @@ func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 	newShardId, isShuffledOut := e.checkIfShuffledOut(pubKey, e.nodesConfig)
 	modifiedShardId := e.applyShardIDAsObserverIfNeeded(newShardId)
 	if newShardId != modifiedShardId {
+		log.Debug("getShardIDForLatestEpoch applyShardIDAsObserverIfNeeded", "beforeObserver", newShardId, "afterObserver", modifiedShardId)
 		isShuffledOut = true
 	}
 

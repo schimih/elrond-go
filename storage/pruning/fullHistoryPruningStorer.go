@@ -47,6 +47,7 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 		args:          args.StorerArgs,
 		shardId:       shardId,
 	}
+	log.Debug("initFullHistoryPruningStorer", "NumOfOldActivePersisters", int(args.NumOfActivePersisters))
 	fhps.oldEpochsActivePersistersCache, err = lrucache.NewCacheWithEviction(int(args.NumOfOldActivePersisters), fhps.onEvicted)
 	if err != nil {
 		return nil, err
@@ -56,6 +57,7 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 }
 
 func (fhps *FullHistoryPruningStorer) onEvicted(key interface{}, value interface{}) {
+	log.Debug("fhps - onEvicted - entered", "key", key, "value", value)
 	pd, ok := value.(*persisterData)
 	if ok {
 		//since the put operation on oldEpochsActivePersistersCache is already done under the mutex we shall not lock
@@ -67,6 +69,7 @@ func (fhps *FullHistoryPruningStorer) onEvicted(key interface{}, value interface
 			}
 		}
 
+		log.Debug("fhps - onEvicted", "key", key)
 		if pd.getIsClosed() {
 			return
 		}
@@ -155,6 +158,7 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 			return nil, errPersisterData
 		}
 
+		log.Debug("fhps - getOrOpenPersister", "key", epochString)
 		fhps.oldEpochsActivePersistersCache.Put([]byte(epochString), newPdata, 0)
 		fhps.persistersMapByEpoch[epoch] = newPdata
 

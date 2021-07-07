@@ -312,7 +312,7 @@ func (ps *PruningStorer) createAndInitPersisterIfClosed(pd *persisterData) (stor
 		noopClose := func() {}
 		return pd.getPersister(), noopClose, nil
 	}
-
+	log.Debug("ps - createAndInitPersisterIfClosed", "key", pd.path)
 	return ps.createAndInitPersister(pd)
 }
 
