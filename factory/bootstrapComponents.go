@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go/storage/latestData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -245,7 +246,7 @@ func CreateLatestStorageDataProvider(
 	defaultShardString string,
 	fullHistoryObserver bool,
 ) (storage.LatestStorageDataProviderHandler, error) {
-	directoryReader := storageFactory.NewDirectoryReader()
+	directoryReader := directoryhandler.NewDirectoryReader()
 
 	latestStorageDataArgs := latestData.ArgsLatestDataProvider{
 		GeneralConfig:         generalConfig,
