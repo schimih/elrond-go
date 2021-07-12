@@ -170,7 +170,7 @@ func TestNewMemoryLibp2pMessenger_OkValsWithoutDiscoveryShouldWork(t *testing.T)
 
 //------- NewNetworkMessenger
 
-func TestNewNetworkMessenger_NilMessengerShouldErr(t *testing.T) {
+func TestNewNetworkMessenger_NilMarshalizerShouldErr(t *testing.T) {
 	arg := createMockNetworkArgs()
 	arg.Marshalizer = nil
 	mes, err := libp2p.NewNetworkMessenger(arg)

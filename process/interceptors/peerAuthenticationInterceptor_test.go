@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -208,15 +209,20 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAValidIntercepte
 func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldProcess(t *testing.T) {
 	t.Parallel()
 
+	peer := core.PeerID("peer")
 	processCalled := uint32(0)
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerHeartbeatStub{}, nil
+			return &mock.InterceptedPeerAuthenticationStub{
+				PeerIDCalled: func() core.PeerID {
+					return peer
+				},
+			}, nil
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
-		ProcessCalled: func(peerHeartbeat process.InterceptedPeerAuthentication) error {
+		ProcessReceivedCalled: func(message p2p.MessageP2P, peerHeartbeat process.InterceptedPeerAuthentication) error {
 			atomic.AddUint32(&processCalled, 1)
 
 			return nil
@@ -238,7 +244,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldProc
 		FromField:  []byte("from"),
 		DataField:  buffBatch,
 		TopicField: arg.Topic,
-		PeerField:  "",
+		PeerField:  peer,
 	}
 
 	err := interceptor.ProcessReceivedMessage(msg, "")
@@ -256,11 +262,11 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotP
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerHeartbeatStub{}, nil
+			return &mock.InterceptedPeerAuthenticationStub{}, nil
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
-		ProcessCalled: func(peerHeartbeat process.InterceptedPeerAuthentication) error {
+		ProcessReceivedCalled: func(message p2p.MessageP2P, peerHeartbeat process.InterceptedPeerAuthentication) error {
 			atomic.AddUint32(&processCalled, 1)
 
 			return nil
@@ -301,13 +307,14 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotP
 func TestPeerAuthenticationInterceptor_ProcessReceivedMessageProcessError(t *testing.T) {
 	t.Parallel()
 
+	peer := core.PeerID("peer")
 	numBlackListedCalled := 0
 	expectedErr := errors.New("expected error")
 	cause := "peer info processing error"
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerHeartbeatStub{}, nil
+			return &mock.InterceptedPeerAuthenticationStub{}, nil
 		},
 	}
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
@@ -317,13 +324,18 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageProcessError(t *tes
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
-		ProcessCalled: func(peerHeartbeat process.InterceptedPeerAuthentication) error {
+		ProcessReceivedCalled: func(message p2p.MessageP2P, peerHeartbeat process.InterceptedPeerAuthentication) error {
 			return expectedErr
 		},
 	}
 	arg.ValidatorChecker = &mock.NodesCoordinatorMock{
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error) {
 			return nil, 0, nil
+		},
+	}
+	arg.WhiteListRequest = &mock.WhiteListHandlerStub{
+		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+			return true
 		},
 	}
 	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
@@ -337,7 +349,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageProcessError(t *tes
 		FromField:  []byte("from"),
 		DataField:  buffBatch,
 		TopicField: arg.Topic,
-		PeerField:  "",
+		PeerField:  peer,
 	}
 
 	err := interceptor.ProcessReceivedMessage(msg, "")
@@ -347,6 +359,57 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageProcessError(t *tes
 	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 1)
 }
 
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageValidatorsNotWhiteListedShouldNotProcess(t *testing.T) {
+	t.Parallel()
+
+	peer := core.PeerID("peer")
+	processCalled := uint32(0)
+	arg := createMockArgPeerAuthenticationInterceptor()
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
+			return &mock.InterceptedPeerAuthenticationStub{}, nil
+		},
+	}
+	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
+		ProcessReceivedCalled: func(message p2p.MessageP2P, peerHeartbeat process.InterceptedPeerAuthentication) error {
+			atomic.AddUint32(&processCalled, 1)
+
+			return nil
+		},
+	}
+	arg.ValidatorChecker = &mock.NodesCoordinatorMock{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error) {
+			return nil, 0, nil //is a validator
+		},
+	}
+	arg.WhiteListRequest = &mock.WhiteListHandlerStub{
+		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+			return false
+		},
+	}
+
+	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
+
+	b := &batch.Batch{
+		Data: [][]byte{[]byte("buff1"), []byte("buff2")},
+	}
+	buffBatch, _ := arg.Marshalizer.Marshal(b)
+
+	msg := &mock.P2PMessageMock{
+		FromField:  []byte("from"),
+		DataField:  buffBatch,
+		TopicField: arg.Topic,
+		PeerField:  peer,
+	}
+
+	err := interceptor.ProcessReceivedMessage(msg, "")
+	require.Equal(t, process.ErrPeerAuthenticationForObservers, err)
+
+	assert.Equal(t, uint32(0), atomic.LoadUint32(&processCalled))
+	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
+	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 0)
+}
+
 func TestPeerAuthenticationInterceptor_ProcessReceivedMessageValidatorsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -354,11 +417,11 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageValidatorsShouldWor
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerHeartbeatStub{}, nil
+			return &mock.InterceptedPeerAuthenticationStub{}, nil
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
-		ProcessCalled: func(peerHeartbeat process.InterceptedPeerAuthentication) error {
+		ProcessReceivedCalled: func(message p2p.MessageP2P, peerHeartbeat process.InterceptedPeerAuthentication) error {
 			atomic.AddUint32(&processCalled, 1)
 
 			return nil

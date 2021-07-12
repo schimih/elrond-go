@@ -120,7 +120,9 @@ func TestInterceptedPeerAuthentication_GettersAndSetters(t *testing.T) {
 	}
 	ipa, err := NewInterceptedPeerAuthentication(arg)
 	require.Nil(t, err)
-	ipa.SetComputedShardID(2)
+	shardID := uint32(2)
+	ipa.SetComputedShardID(shardID)
+	assert.Equal(t, shardID, ipa.ComputedShardID())
 
 	assert.Equal(t, pkBytes, ipa.PublicKey())
 	assert.True(t, ipa.IsForCurrentShard())

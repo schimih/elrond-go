@@ -107,6 +107,14 @@ func (ipa *interceptedPeerAuthentication) HardforkPayload() []byte {
 	return ipa.peerAuthentication.HardforkPayload
 }
 
+// ComputedShardID returns the computed shard ID
+func (ipa *interceptedPeerAuthentication) ComputedShardID() uint32 {
+	ipa.mutComputedShardID.RLock()
+	defer ipa.mutComputedShardID.RUnlock()
+
+	return ipa.computedShardID
+}
+
 // SetComputedShardID sets the computed shard ID. Concurrency safe.
 func (ipa *interceptedPeerAuthentication) SetComputedShardID(shardId uint32) {
 	ipa.mutComputedShardID.Lock()

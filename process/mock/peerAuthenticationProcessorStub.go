@@ -1,16 +1,19 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/process"
+import (
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
+)
 
 // PeerAuthenticationProcessorStub -
 type PeerAuthenticationProcessorStub struct {
-	ProcessCalled func(peerHeartbeat process.InterceptedPeerAuthentication) error
+	ProcessReceivedCalled func(message p2p.MessageP2P, peerHeartbeat process.InterceptedPeerAuthentication) error
 }
 
-// Process -
-func (proc *PeerAuthenticationProcessorStub) Process(peerHeartbeat process.InterceptedPeerAuthentication) error {
-	if proc.ProcessCalled != nil {
-		return proc.ProcessCalled(peerHeartbeat)
+// ProcessReceived -
+func (proc *PeerAuthenticationProcessorStub) ProcessReceived(message p2p.MessageP2P, peerHeartbeat process.InterceptedPeerAuthentication) error {
+	if proc.ProcessReceivedCalled != nil {
+		return proc.ProcessReceivedCalled(message, peerHeartbeat)
 	}
 
 	return nil

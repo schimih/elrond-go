@@ -1106,11 +1106,14 @@ type ValidatorChecker interface {
 type InterceptedPeerAuthentication interface {
 	InterceptedData
 	PublicKey() []byte
+	PeerID() core.PeerID
+	Signature() []byte
+	ComputedShardID() uint32
 	SetComputedShardID(shardId uint32)
 }
 
 // PeerAuthenticationProcessor is able to process and check the provided intercepted peer authentication instance
 type PeerAuthenticationProcessor interface {
-	Process(peerAuthentication InterceptedPeerAuthentication) error
+	ProcessReceived(message p2p.MessageP2P, peerAuthentication InterceptedPeerAuthentication) error
 	IsInterfaceNil() bool
 }

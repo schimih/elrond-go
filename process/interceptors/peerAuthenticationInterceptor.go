@@ -26,6 +26,7 @@ type peerAuthenticationInterceptor struct {
 	validatorChecker            process.ValidatorChecker
 	peerAuthenticationProcessor process.PeerAuthenticationProcessor
 	observersThrottler          process.InterceptorThrottler
+	whiteListRequest            process.WhiteListHandler
 }
 
 // NewPeerAuthenticationInterceptor hooks a new interceptor for packed multi data containing peer authentication instances
@@ -61,6 +62,7 @@ func NewPeerAuthenticationInterceptor(arg ArgPeerAuthenticationInterceptor) (*pe
 		validatorChecker:            arg.ValidatorChecker,
 		peerAuthenticationProcessor: arg.AuthenticationProcessor,
 		observersThrottler:          arg.ObserversThrottler,
+		whiteListRequest:            arg.WhiteListRequest,
 	}
 
 	return interceptor, nil
@@ -74,7 +76,7 @@ func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.Mes
 		return err
 	}
 
-	observerMessageIgnored := false
+	authMessageIgnored := false
 	for _, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = pai.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
@@ -100,12 +102,18 @@ func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.Mes
 		isObserver := err != nil
 		isSkippableObservers := isObserver && !pai.observersThrottler.CanProcess()
 		if isSkippableObservers {
-			observerMessageIgnored = true
+			authMessageIgnored = true
+			continue
+		}
+
+		shouldProcessAuthMessage := message.Peer() == peerAuth.PeerID() || pai.whiteListRequest.IsWhiteListed(peerAuth)
+		if !shouldProcessAuthMessage {
+			authMessageIgnored = true
 			continue
 		}
 
 		pai.observersThrottler.StartProcessing()
-		errProcess := pai.peerAuthenticationProcessor.Process(peerAuth)
+		errProcess := pai.peerAuthenticationProcessor.ProcessReceived(message, peerAuth)
 		if errProcess != nil {
 			pai.throttler.EndProcessing()
 			pai.observersThrottler.EndProcessing()
@@ -115,7 +123,7 @@ func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.Mes
 		pai.observersThrottler.EndProcessing()
 	}
 	pai.throttler.EndProcessing()
-	if observerMessageIgnored {
+	if authMessageIgnored {
 		return process.ErrPeerAuthenticationForObservers
 	}
 
