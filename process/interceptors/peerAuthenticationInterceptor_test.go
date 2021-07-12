@@ -16,19 +16,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgPeerAuthenticationInterceptor() interceptors.ArgPeerAuthenticationInterceptor {
 	argSingle := interceptors.ArgSingleDataInterceptor{
-		Topic:            "test topic",
-		DataFactory:      &mock.InterceptedDataFactoryStub{},
-		Processor:        &mock.InterceptorProcessorStub{},
-		Throttler:        createMockThrottler(),
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest: &mock.WhiteListHandlerStub{},
-		CurrentPeerId:    "pid",
+		Topic:                "test topic",
+		DataFactory:          &mock.InterceptedDataFactoryStub{},
+		Processor:            &mock.InterceptorProcessorStub{},
+		Throttler:            createMockThrottler(),
+		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:        "pid",
 	}
 
 	return interceptors.ArgPeerAuthenticationInterceptor{
@@ -175,7 +178,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAValidIntercepte
 	numBlackListedCalled := 0
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedDataStub{}, nil
+			return &testscommon.InterceptedDataStub{}, nil
 		},
 	}
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
@@ -206,7 +209,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAValidIntercepte
 	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 0)
 }
 
-func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldProcess(t *testing.T) {
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversMoreObserversShouldNotSend(t *testing.T) {
 	t.Parallel()
 
 	peer := core.PeerID("peer")
@@ -214,7 +217,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldProc
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerAuthenticationStub{
+			return &testscommon.InterceptedPeerHeartbeatStub{
 				PeerIDCalled: func() core.PeerID {
 					return peer
 				},
@@ -248,11 +251,55 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldProc
 	}
 
 	err := interceptor.ProcessReceivedMessage(msg, "")
-	require.Nil(t, err)
+	require.Equal(t, process.ErrShouldNotBroadcastMessage, err)
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&processCalled))
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
 	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 2)
+}
+
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldProcessAndBroadcast(t *testing.T) {
+	t.Parallel()
+
+	processCalled := uint32(0)
+	arg := createMockArgPeerAuthenticationInterceptor()
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
+			return &testscommon.InterceptedPeerHeartbeatStub{}, nil
+		},
+	}
+	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
+		ProcessCalled: func(peerHeartbeat process.InterceptedPeerAuthentication) error {
+			atomic.AddUint32(&processCalled, 1)
+
+			return nil
+		},
+	}
+	arg.ValidatorChecker = &mock.NodesCoordinatorMock{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error) {
+			return nil, 0, fmt.Errorf("provided peer is an observer")
+		},
+	}
+	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
+
+	b := &batch.Batch{
+		Data: [][]byte{[]byte("buff1")},
+	}
+	buffBatch, _ := arg.Marshalizer.Marshal(b)
+
+	msg := &mock.P2PMessageMock{
+		FromField:  []byte("from"),
+		DataField:  buffBatch,
+		TopicField: arg.Topic,
+		PeerField:  "",
+	}
+
+	err := interceptor.ProcessReceivedMessage(msg, "")
+	require.Nil(t, err)
+
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&processCalled))
+	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
+	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 1)
 }
 
 func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotProcess(t *testing.T) {
@@ -262,7 +309,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotP
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerAuthenticationStub{}, nil
+			return &testscommon.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
@@ -297,7 +344,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotP
 	}
 
 	err := interceptor.ProcessReceivedMessage(msg, "")
-	require.Equal(t, process.ErrPeerAuthenticationForObservers, err)
+	require.Equal(t, process.ErrShouldNotBroadcastMessage, err)
 
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&processCalled))
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
@@ -314,7 +361,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageProcessError(t *tes
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerAuthenticationStub{}, nil
+			return &testscommon.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
@@ -417,7 +464,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageValidatorsShouldWor
 	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
-			return &mock.InterceptedPeerAuthenticationStub{}, nil
+			return &testscommon.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
 	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
@@ -448,7 +495,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageValidatorsShouldWor
 	}
 
 	err := interceptor.ProcessReceivedMessage(msg, "")
-	require.Nil(t, err)
+	require.Equal(t, process.ErrShouldNotBroadcastMessage, err)
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&processCalled))
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
