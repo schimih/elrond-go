@@ -350,6 +350,17 @@ func (e *epochStartBootstrap) initFirst() (Parameters, error) {
 	return Parameters{}, err
 }
 
+func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
+	e.cleanupMessengerOnBootstrapFinish()
+
+	if !check.IfNil(e.interceptorContainer) {
+		errClose := e.interceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+		}
+	}
+}
+
 func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
 	log.Warn("fast bootstrap is disabled")
 
@@ -398,17 +409,6 @@ func (e *epochStartBootstrap) cleanupMessengerOnBootstrapFinish() {
 
 	errMessenger = e.messenger.UnjoinAllTopics()
 	log.LogIfError(errMessenger)
-}
-
-func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
-	e.cleanupMessengerOnBootstrapFinish()
-
-	if !check.IfNil(e.interceptorContainer) {
-		errClose := e.interceptorContainer.Close()
-		if errClose != nil {
-			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
-		}
-	}
 }
 
 func (e *epochStartBootstrap) startFromSavedEpoch() (Parameters, bool, error) {
@@ -901,12 +901,14 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		return err
 	}
 
-	userStorageManager, userAccountTrie, err := trieFactory.Create(
-		e.generalConfig.AccountsTrieStorage,
-		core.GetShardIDString(shardId),
-		e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-	)
+	args := data.TrieCreateArgs{
+		TrieStorageConfig:  e.generalConfig.AccountsTrieStorage,
+		ShardID:            core.GetShardIDString(shardId),
+		PruningEnabled:     e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled: e.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:  e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+	}
+	userStorageManager, userAccountTrie, err := trieFactory.Create(args)
 	if err != nil {
 		return err
 	}
@@ -916,12 +918,14 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 	e.mutTrieStorageManagers.Unlock()
 
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
-		e.generalConfig.PeerAccountsTrieStorage,
-		core.GetShardIDString(shardId),
-		e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
-		e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
-	)
+	args = data.TrieCreateArgs{
+		TrieStorageConfig:  e.generalConfig.PeerAccountsTrieStorage,
+		ShardID:            core.GetShardIDString(shardId),
+		PruningEnabled:     e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+		CheckpointsEnabled: e.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:  e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+	}
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(args)
 	if err != nil {
 		return err
 	}
