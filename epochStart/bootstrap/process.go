@@ -302,6 +302,35 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	defer e.cleanupOnBootstrapFinish()
 
+	params, err := e.initFirst()
+	if err != nil {
+		return params, err
+	}
+
+	params, shouldContinue, err := e.startFromSavedEpoch()
+	if !shouldContinue {
+		return params, err
+	}
+
+	err = e.prepareComponentsToSyncFromNetwork()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	err = e.startSyncStuff(DefaultTimeToWaitForRequestedData, "")
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	params, err = e.requestAndProcessing()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	return params, nil
+}
+
+func (e *epochStartBootstrap) initFirst() (Parameters, error) {
 	var err error
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
@@ -317,45 +346,8 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			PathManager:      e.coreComponentsHolder.PathHandler(),
 		},
 	)
-	if err != nil {
-		return Parameters{}, err
-	}
 
-	params, shouldContinue, err := e.startFromSavedEpoch()
-	if !shouldContinue {
-		return params, err
-	}
-
-	err = e.prepareComponentsToSyncFromNetwork()
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(DefaultTimeToWaitForRequestedData)
-	if err != nil {
-		return Parameters{}, err
-	}
-	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
-	e.setEpochStartMetrics()
-
-	err = e.createSyncers()
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	defer func() {
-		errClose := e.interceptorContainer.Close()
-		if errClose != nil {
-			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
-		}
-	}()
-
-	params, err = e.requestAndProcessing()
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	return params, nil
+	return Parameters{}, err
 }
 
 func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
@@ -399,13 +391,24 @@ func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
 	}, nil
 }
 
-func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
+func (e *epochStartBootstrap) cleanupMessengerOnBootstrapFinish() {
 	log.Debug("unregistering all message processor and un-joining all topics")
 	errMessenger := e.messenger.UnregisterAllMessageProcessors()
 	log.LogIfError(errMessenger)
 
 	errMessenger = e.messenger.UnjoinAllTopics()
 	log.LogIfError(errMessenger)
+}
+
+func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
+	e.cleanupMessengerOnBootstrapFinish()
+
+	if !check.IfNil(e.interceptorContainer) {
+		errClose := e.interceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+		}
+	}
 }
 
 func (e *epochStartBootstrap) startFromSavedEpoch() (Parameters, bool, error) {
@@ -975,12 +978,12 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 }
 
 func (e *epochStartBootstrap) createRequestHandler() error {
+	storageService := disabled.NewChainStorer()
+
 	dataPacker, err := partitioning.NewSimpleDataPacker(e.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
 	}
-
-	storageService := disabled.NewChainStorer()
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:            e.shardCoordinator,
@@ -1074,4 +1077,20 @@ func (e *epochStartBootstrap) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (e *epochStartBootstrap) IsInterfaceNil() bool {
 	return e == nil
+}
+
+func (e *epochStartBootstrap) startSyncStuff(waitTime time.Duration, extraMessage string) error {
+	var err error
+	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(waitTime)
+	if err != nil {
+		return err
+	}
+	log.Debug("start in epoch bootstrap: got epoch start meta header"+extraMessage, "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
+	e.setEpochStartMetrics()
+
+	err = e.createSyncers()
+	if err != nil {
+		return err
+	}
+	return nil
 }

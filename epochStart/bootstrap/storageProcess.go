@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
@@ -72,37 +71,11 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 		return sesb.bootstrapFromLocalStorage()
 	}
 
-	defer func() {
-		sesb.cleanupOnBootstrapFinish()
+	defer sesb.cleanupOnBootstrapFinish()
 
-		if !check.IfNil(sesb.resolvers) {
-			err := sesb.resolvers.Close()
-			log.Debug("non critical error closing resolvers", "error", err)
-		}
-
-		if !check.IfNil(sesb.store) {
-			err := sesb.store.CloseAll()
-			log.Debug("non critical error closing resolvers", "error", err)
-		}
-	}()
-
-	var err error
-	sesb.shardCoordinator, err = sharding.NewMultiShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
+	params, err := sesb.initFirst()
 	if err != nil {
-		return Parameters{}, err
-	}
-
-	sesb.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
-		factoryDataPool.ArgsDataPool{
-			Config:           &sesb.generalConfig,
-			EconomicsData:    sesb.economicsData,
-			ShardCoordinator: sesb.shardCoordinator,
-			Marshalizer:      sesb.coreComponentsHolder.InternalMarshalizer(),
-			PathManager:      sesb.coreComponentsHolder.PathHandler(),
-		},
-	)
-	if err != nil {
-		return Parameters{}, err
+		return params, err
 	}
 
 	params, shouldContinue, err := sesb.startFromSavedEpoch()
@@ -115,14 +88,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	sesb.epochStartMeta, err = sesb.epochStartMetaBlockSyncer.SyncEpochStartMeta(sesb.timeToWaitForRequestedData)
-	if err != nil {
-		return Parameters{}, err
-	}
-	log.Debug("start in epoch bootstrap: got epoch start meta header from storage", "epoch", sesb.epochStartMeta.Epoch, "nonce", sesb.epochStartMeta.Nonce)
-	sesb.setEpochStartMetrics()
-
-	err = sesb.createSyncers()
+	err = sesb.startSyncStuff(sesb.timeToWaitForRequestedData, "from storage")
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -178,7 +144,47 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 }
 
 func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
-	err := sesb.createStorageResolvers()
+	var err error
+	mesn := notifier.NewManualEpochStartNotifier()
+	mesn.NewEpoch(sesb.importDbConfig.ImportDBStartInEpoch + 1)
+	sesb.store, err = sesb.createStoreForStorageResolvers(sesb.shardCoordinator, mesn)
+	if err != nil {
+		return err
+	}
+
+	dataPacker, err := partitioning.NewSimpleDataPacker(sesb.coreComponentsHolder.InternalMarshalizer())
+	if err != nil {
+		return err
+	}
+
+	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
+		GeneralConfig:            sesb.generalConfig,
+		ShardIDForTries:          sesb.importDbConfig.ImportDBTargetShardID,
+		ChainID:                  sesb.chainID,
+		WorkingDirectory:         sesb.importDbConfig.ImportDBWorkingDir,
+		Hasher:                   sesb.coreComponentsHolder.Hasher(),
+		ShardCoordinator:         sesb.shardCoordinator,
+		Messenger:                sesb.messenger,
+		Store:                    sesb.store,
+		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter: sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: mesn,
+		ChanGracefullyClose:      sesb.chanGracefullyClose,
+	}
+
+	var resolversContainerFactory dataRetriever.ResolversContainerFactory
+	if sesb.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
+		resolversContainerFactory, err = storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
+	} else {
+		resolversContainerFactory, err = storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	sesb.resolvers, err = resolversContainerFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -206,14 +212,9 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 		return err
 	}
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
-	if err != nil {
-		return err
-	}
-
 	mesn := notifier.NewManualEpochStartNotifier()
 	mesn.NewEpoch(sesb.importDbConfig.ImportDBStartInEpoch + 1)
-	sesb.store, err = sesb.createStoreForStorageResolvers(shardCoordinator, mesn)
+	sesb.store, err = sesb.createStoreForStorageResolvers(sesb.shardCoordinator, mesn)
 	if err != nil {
 		return err
 	}
@@ -224,7 +225,7 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 		ChainID:                  sesb.chainID,
 		WorkingDirectory:         sesb.importDbConfig.ImportDBWorkingDir,
 		Hasher:                   sesb.coreComponentsHolder.Hasher(),
-		ShardCoordinator:         shardCoordinator,
+		ShardCoordinator:         sesb.shardCoordinator,
 		Messenger:                sesb.messenger,
 		Store:                    sesb.store,
 		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
@@ -451,4 +452,18 @@ func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(meta
 // IsInterfaceNil returns true if there is no value under the interface
 func (sesb *storageEpochStartBootstrap) IsInterfaceNil() bool {
 	return sesb == nil
+}
+
+func (sesb *storageEpochStartBootstrap) cleanupOnBootstrapFinish() {
+	sesb.cleanupMessengerOnBootstrapFinish()
+
+	if !check.IfNil(sesb.resolvers) {
+		err := sesb.resolvers.Close()
+		log.Debug("non critical error closing resolvers", "error", err)
+	}
+
+	if !check.IfNil(sesb.store) {
+		err := sesb.store.CloseAll()
+		log.Debug("non critical error closing resolvers", "error", err)
+	}
 }
