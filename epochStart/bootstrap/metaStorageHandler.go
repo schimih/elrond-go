@@ -71,7 +71,7 @@ func NewMetaStorageHandler(
 }
 
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
-func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap) error {
+func (msh *metaStorageHandler) SaveDataToStorage(components *componentsNeededForBootstrap) error {
 	defer func() {
 		err := msh.storageService.CloseAll()
 		if err != nil {
@@ -200,7 +200,7 @@ func (msh *metaStorageHandler) saveLastHeader(metaBlock *block.MetaBlock) (boots
 	return bootstrapHdrInfo, nil
 }
 
-func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
+func (msh *metaStorageHandler) saveTriggerRegistry(components *componentsNeededForBootstrap) ([]byte, error) {
 	metaBlock := components.EpochStartMetaBlock
 	hash, err := core.CalculateHash(msh.marshalizer, msh.hasher, metaBlock)
 	if err != nil {

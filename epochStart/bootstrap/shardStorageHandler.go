@@ -72,7 +72,7 @@ func NewShardStorageHandler(
 }
 
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
-func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap) error {
+func (ssh *shardStorageHandler) SaveDataToStorage(components *componentsNeededForBootstrap) error {
 	defer func() {
 		err := ssh.storageService.CloseAll()
 		if err != nil {
@@ -151,7 +151,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 	return nil
 }
 
-func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap) error {
+func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *componentsNeededForBootstrap) error {
 	err := ssh.saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
 	if err != nil {
 		return err
@@ -281,7 +281,7 @@ func (ssh *shardStorageHandler) saveLastHeader(shardHeader *block.Header) (boots
 	return bootstrapHdrInfo, nil
 }
 
-func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
+func (ssh *shardStorageHandler) saveTriggerRegistry(components *componentsNeededForBootstrap) ([]byte, error) {
 	shardHeader := components.ShardHeader
 
 	metaBlock := components.EpochStartMetaBlock

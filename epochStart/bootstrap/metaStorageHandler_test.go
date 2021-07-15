@@ -128,7 +128,7 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 
 	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
 
-	components := &ComponentsNeededForBootstrap{
+	components := &componentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
 		PreviousEpochStart:  &block.MetaBlock{Nonce: 2},
 	}
@@ -153,7 +153,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 
 	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
 
-	components := &ComponentsNeededForBootstrap{
+	components := &componentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
 		PreviousEpochStart:  &block.MetaBlock{Nonce: 2},
 	}

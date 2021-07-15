@@ -51,7 +51,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 
 	shardStrHandler, _ := NewShardStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
 
-	components := &ComponentsNeededForBootstrap{
+	components := &componentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Epoch: 1},
 		PreviousEpochStart:  &block.MetaBlock{Epoch: 1},
 		ShardHeader:         &block.Header{Nonce: 1},
@@ -77,7 +77,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 
 	shardStrHandler, _ := NewShardStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
 
-	components := &ComponentsNeededForBootstrap{
+	components := &componentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{
 			Epoch: 1,
 			EpochStart: block.EpochStart{
@@ -118,7 +118,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		string(hash1): &hdr1,
 	}
 
-	components := &ComponentsNeededForBootstrap{
+	components := &componentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{
 			Epoch: 1,
 			EpochStart: block.EpochStart{

@@ -61,8 +61,8 @@ type Parameters struct {
 	NodesConfig *sharding.NodesCoordinatorRegistry
 }
 
-// ComponentsNeededForBootstrap holds the components which need to be initialized from network
-type ComponentsNeededForBootstrap struct {
+// componentsNeededForBootstrap holds the components which need to be initialized from network
+type componentsNeededForBootstrap struct {
 	EpochStartMetaBlock *block.MetaBlock
 	PreviousEpochStart  *block.MetaBlock
 	ShardHeader         *block.Header
@@ -715,7 +715,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		return err
 	}
 
-	components := &ComponentsNeededForBootstrap{
+	components := &componentsNeededForBootstrap{
 		EpochStartMetaBlock: e.epochStartMeta,
 		PreviousEpochStart:  e.prevEpochStartMeta,
 		NodesConfig:         e.nodesConfig,
@@ -814,7 +814,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	}
 	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
-	components := &ComponentsNeededForBootstrap{
+	components := &componentsNeededForBootstrap{
 		EpochStartMetaBlock: e.epochStartMeta,
 		PreviousEpochStart:  e.prevEpochStartMeta,
 		ShardHeader:         ownShardHdr,
