@@ -1,19 +1,20 @@
-package mock
+package testscommon
 
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // InterceptedPeerAuthenticationStub -
 type InterceptedPeerAuthenticationStub struct {
 	InterceptedDataStub
-	PublicKeyCalled    func() []byte
-	PeerIDCalled       func() core.PeerID
-	SignatureCalled    func() []byte
-	mutComputedShardID sync.Mutex
-	computedShardID    uint32
+	PublicKeyCalled       func() []byte
+	PeerIDCalled          func() core.PeerID
+	SignatureCalled       func() []byte
+	HardforkPayloadCalled func() []byte
+	mutComputedShardID    sync.Mutex
+	computedShardID       uint32
 }
 
 // PeerID -
@@ -29,6 +30,15 @@ func (i *InterceptedPeerAuthenticationStub) PeerID() core.PeerID {
 func (i *InterceptedPeerAuthenticationStub) Signature() []byte {
 	if i.SignatureCalled != nil {
 		return i.SignatureCalled()
+	}
+
+	return make([]byte, 0)
+}
+
+// HardforkPayload -
+func (i *InterceptedPeerAuthenticationStub) HardforkPayload() []byte {
+	if i.HardforkPayloadCalled != nil {
+		return i.HardforkPayloadCalled()
 	}
 
 	return make([]byte, 0)

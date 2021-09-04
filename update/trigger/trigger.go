@@ -474,6 +474,11 @@ func (t *trigger) NotifyTriggerReceived() <-chan struct{} {
 	return t.chanTriggerReceived
 }
 
+// HardforkTriggerPublicKeyBytes returns the public key bytes that can cause a hardfork trigger on the current node
+func (t *trigger) HardforkTriggerPublicKeyBytes() []byte {
+	return t.triggerPubKey
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (t *trigger) IsInterfaceNil() bool {
 	return t == nil

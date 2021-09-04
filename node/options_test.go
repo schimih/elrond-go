@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/update"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -233,7 +234,7 @@ func TestWithHardforkTrigger_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	hardforkTrigger := &mock.HardforkTriggerStub{}
+	hardforkTrigger := &update.HardforkTriggerStub{}
 	opt := WithHardforkTrigger(hardforkTrigger)
 	err := opt(node)
 

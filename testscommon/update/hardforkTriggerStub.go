@@ -1,16 +1,17 @@
-package mock
+package update
 
 import "github.com/ElrondNetwork/elrond-go/update"
 
 // HardforkTriggerStub -
 type HardforkTriggerStub struct {
-	TriggerCalled                func(epoch uint32, withEarlyEndOfEpoch bool) error
-	IsSelfTriggerCalled          func() bool
-	TriggerReceivedCalled        func(payload []byte, data []byte, pkBytes []byte) (bool, error)
-	RecordedTriggerMessageCalled func() ([]byte, bool)
-	CreateDataCalled             func() []byte
-	AddCloserCalled              func(closer update.Closer) error
-	NotifyTriggerReceivedCalled  func() <-chan struct{}
+	TriggerCalled                       func(epoch uint32, withEarlyEndOfEpoch bool) error
+	IsSelfTriggerCalled                 func() bool
+	TriggerReceivedCalled               func(payload []byte, data []byte, pkBytes []byte) (bool, error)
+	RecordedTriggerMessageCalled        func() ([]byte, bool)
+	CreateDataCalled                    func() []byte
+	AddCloserCalled                     func(closer update.Closer) error
+	NotifyTriggerReceivedCalled         func() <-chan struct{}
+	HardforkTriggerPublicKeyBytesCalled func() []byte
 }
 
 // Trigger -
@@ -74,6 +75,15 @@ func (hts *HardforkTriggerStub) NotifyTriggerReceived() <-chan struct{} {
 	}
 
 	return make(chan struct{})
+}
+
+// HardforkTriggerPublicKeyBytes -
+func (hts *HardforkTriggerStub) HardforkTriggerPublicKeyBytes() []byte {
+	if hts.HardforkTriggerPublicKeyBytesCalled != nil {
+		return hts.HardforkTriggerPublicKeyBytesCalled()
+	}
+
+	return make([]byte, 0)
 }
 
 // IsInterfaceNil -

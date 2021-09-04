@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/update"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,7 @@ func createMonitor(
 		PeerTypeProvider:                   &mock.PeerTypeProviderStub{},
 		Timer:                              timer,
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
-		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		HardforkTrigger:                    &update.HardforkTriggerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,

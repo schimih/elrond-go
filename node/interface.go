@@ -57,6 +57,7 @@ type HardforkTrigger interface {
 	AddCloser(closer update.Closer) error
 	NotifyTriggerReceived() <-chan struct{}
 	IsSelfTrigger() bool
+	HardforkTriggerPublicKeyBytes() []byte
 	IsInterfaceNil() bool
 }
 

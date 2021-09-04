@@ -21,6 +21,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/update"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
 )
@@ -389,7 +390,7 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 	return factory.ConsensusComponentsFactoryArgs{
 		Config:              testscommon.GetGeneralConfig(),
 		BootstrapRoundIndex: 0,
-		HardforkTrigger:     &mock.HardforkTriggerStub{},
+		HardforkTrigger:     &update.HardforkTriggerStub{},
 		CoreComponents:      coreComponents,
 		NetworkComponents:   networkComponents,
 		CryptoComponents:    cryptoComponents,

@@ -93,9 +93,6 @@ var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeTo
 // ErrWrongValues signals that wrong values were provided
 var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
 
-// ErrValidatorAlreadySet signals that a topic validator has already been set
-var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
-
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
 

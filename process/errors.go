@@ -992,3 +992,12 @@ var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHand
 // ErrShouldNotBroadcastMessage signals (to the network messenger) that the current received message contains data
 // formatted in such a way that it should not be broadcast to other peers
 var ErrShouldNotBroadcastMessage = errors.New("should not broadcast message")
+
+// ErrNilPeerAuthenticationInterceptedData signals that a nil peer authentication intercepted data has been provided
+var ErrNilPeerAuthenticationInterceptedData = errors.New("nil peer authentication intercepted data")
+
+// ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
+var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
+
+// ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
+var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")

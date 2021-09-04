@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon/update"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,7 +72,7 @@ func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 		},
 		Timer:                              mock.NewTimerMock(),
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
-		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		HardforkTrigger:                    &update.HardforkTriggerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(96),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
@@ -294,7 +295,7 @@ func TestMonitor_ProcessReceivedMessageProcessTriggerErrorShouldErr(t *testing.T
 			return &rcvHb, nil
 		},
 	}
-	arg.HardforkTrigger = &mock.HardforkTriggerStub{
+	arg.HardforkTrigger = &update.HardforkTriggerStub{
 		TriggerReceivedCalled: func(payload []byte, data []byte, pkBytes []byte) (bool, error) {
 			triggerWasCalled = true
 
@@ -528,7 +529,7 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		},
 		Timer:                              timer,
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
-		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		HardforkTrigger:                    &update.HardforkTriggerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,

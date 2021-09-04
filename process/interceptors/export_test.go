@@ -2,6 +2,9 @@ package interceptors
 
 import "github.com/ElrondNetwork/elrond-go/process"
 
+// BlackListCauseWrongTypeAssertion -
+const BlackListCauseWrongTypeAssertion = blackListCauseWrongTypeAssertion
+
 // Topic -
 func (mdi *MultiDataInterceptor) Topic() string {
 	return mdi.topic

@@ -1108,12 +1108,21 @@ type InterceptedPeerAuthentication interface {
 	PublicKey() []byte
 	PeerID() core.PeerID
 	Signature() []byte
+	HardforkPayload() []byte
 	ComputedShardID() uint32
 	SetComputedShardID(shardId uint32)
 }
 
 // PeerAuthenticationProcessor is able to process and check the provided intercepted peer authentication instance
 type PeerAuthenticationProcessor interface {
-	ProcessReceived(message p2p.MessageP2P, peerAuthentication InterceptedPeerAuthentication) error
+	ProcessReceived(originalPayload []byte, peerAuthentication InterceptedPeerAuthentication) error
+	IsHardforkMessage(peerHeartbeat InterceptedPeerAuthentication) bool
+	IsInterfaceNil() bool
+}
+
+// HardforkTrigger defines the hard-fork trigger functionality
+type HardforkTrigger interface {
+	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
+	HardforkTriggerPublicKeyBytes() []byte
 	IsInterfaceNil() bool
 }

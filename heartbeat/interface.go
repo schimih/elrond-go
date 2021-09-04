@@ -89,6 +89,7 @@ type HardforkTrigger interface {
 	RecordedTriggerMessage() ([]byte, bool)
 	NotifyTriggerReceived() <-chan struct{}
 	CreateData() []byte
+	HardforkTriggerPublicKeyBytes() []byte
 	IsInterfaceNil() bool
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon/update"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +37,7 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 		StatusHandler:        &mock.AppStatusHandlerStub{},
 		VersionNumber:        "v0.1",
 		NodeDisplayName:      "undefined",
-		HardforkTrigger:      &mock.HardforkTriggerStub{},
+		HardforkTrigger:      &update.HardforkTriggerStub{},
 		CurrentBlockProvider: &mock.CurrentBlockProviderStub{},
 		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
@@ -577,7 +578,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 			return nil, nil
 		},
 	}
-	arg.HardforkTrigger = &mock.HardforkTriggerStub{
+	arg.HardforkTrigger = &update.HardforkTriggerStub{
 		RecordedTriggerMessageCalled: func() (i []byte, b bool) {
 			return nil, true
 		},
@@ -660,7 +661,7 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 			return nil, nil
 		},
 	}
-	arg.HardforkTrigger = &mock.HardforkTriggerStub{
+	arg.HardforkTrigger = &update.HardforkTriggerStub{
 		RecordedTriggerMessageCalled: func() (i []byte, b bool) {
 			return originalTriggerPayload, true
 		},

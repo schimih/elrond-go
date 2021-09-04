@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+const blackListCauseWrongTypeAssertion = "intercepted data is not of type process.InterceptedPeerAuthentication"
+
 // ArgPeerAuthenticationInterceptor is the argument for the peer authentication interceptor
 type ArgPeerAuthenticationInterceptor struct {
 	ArgSingleDataInterceptor
@@ -88,33 +90,20 @@ func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.Mes
 
 		peerAuth, ok := interceptedData.(process.InterceptedPeerAuthentication)
 		if !ok {
-			//intercepted data is not of type interceptedPeerInfo
-			cause := "intercepted data is not of type process.InterceptedPeerInfo"
-			pai.blackListPeers(cause, nil, message.Peer(), fromConnectedPeer)
+			//intercepted data is not of type InterceptedPeerAuthentication
+			pai.blackListPeers(blackListCauseWrongTypeAssertion, nil, message.Peer(), fromConnectedPeer)
 			pai.throttler.EndProcessing()
 
-			return errors.New(cause)
+			return errors.New(blackListCauseWrongTypeAssertion)
 		}
 
-		var shardID uint32
-		_, shardID, err = pai.validatorChecker.GetValidatorWithPublicKey(peerAuth.PublicKey())
-		peerAuth.SetComputedShardID(shardID)
-
-		isObserver := err != nil
-		isSkippableObservers := isObserver && !pai.observersThrottler.CanProcess()
-		if isSkippableObservers {
-			authMessageIgnored = true
-			continue
-		}
-
-		shouldProcessAuthMessage := message.Peer() == peerAuth.PeerID() || pai.whiteListRequest.IsWhiteListed(peerAuth)
-		if !shouldProcessAuthMessage {
+		if !pai.shouldProcess(message, peerAuth) {
 			authMessageIgnored = true
 			continue
 		}
 
 		pai.observersThrottler.StartProcessing()
-		errProcess := pai.peerAuthenticationProcessor.ProcessReceived(message, peerAuth)
+		errProcess := pai.peerAuthenticationProcessor.ProcessReceived(dataBuff, peerAuth)
 		if errProcess != nil {
 			pai.throttler.EndProcessing()
 			pai.observersThrottler.EndProcessing()
@@ -124,12 +113,34 @@ func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.Mes
 		pai.observersThrottler.EndProcessing()
 	}
 	pai.throttler.EndProcessing()
-	shouldNotPropagateMessage := observerMessageIgnored || len(multiDataBuff) > 1
+	shouldNotPropagateMessage := authMessageIgnored || len(multiDataBuff) > 1
 	if shouldNotPropagateMessage {
 		return process.ErrShouldNotBroadcastMessage
 	}
 
 	return nil
+}
+
+func (pai *peerAuthenticationInterceptor) shouldProcess(message p2p.MessageP2P, peerAuth process.InterceptedPeerAuthentication) bool {
+	isFromOtherPeer := peerAuth.PeerID() != message.Peer()
+	isUnrequested := isFromOtherPeer && !pai.whiteListRequest.IsWhiteListed(peerAuth)
+	if isUnrequested {
+		// we do not allow propagation of peer auth messages sent form other peers other than self except
+		// when we specifically do a request
+		return false
+	}
+
+	_, shardID, err := pai.validatorChecker.GetValidatorWithPublicKey(peerAuth.PublicKey())
+	peerAuth.SetComputedShardID(shardID)
+
+	isValidator := err == nil
+	isHardforkMessage := pai.peerAuthenticationProcessor.IsHardforkMessage(peerAuth)
+	messageIsImportant := isValidator || isHardforkMessage
+	if messageIsImportant {
+		return true
+	}
+
+	return pai.observersThrottler.CanProcess()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

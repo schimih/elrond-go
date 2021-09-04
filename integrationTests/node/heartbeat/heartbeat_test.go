@@ -8,6 +8,7 @@ import (
 
 	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	updateMock "github.com/ElrondNetwork/elrond-go/testscommon/update"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -219,7 +220,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		StatusHandler:        &mock.AppStatusHandlerStub{},
 		VersionNumber:        version,
 		NodeDisplayName:      nodeName,
-		HardforkTrigger:      &mock.HardforkTriggerStub{},
+		HardforkTrigger:      &updateMock.HardforkTriggerStub{},
 		CurrentBlockProvider: &mock.BlockChainMock{},
 		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
@@ -270,7 +271,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 				return nil
 			},
 		},
-		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		HardforkTrigger:                    &updateMock.HardforkTriggerStub{},
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
