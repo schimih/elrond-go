@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	process2 "github.com/ElrondNetwork/elrond-go/debug/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -175,6 +176,9 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		tx,
 		txProc.pubkeyConv,
 	)
+
+	txHash, _ := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	process2.TX_DEBUGGER.RemoveTx(string(txHash))
 
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)

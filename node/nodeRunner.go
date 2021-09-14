@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/dblookupext/factory"
+	process2 "github.com/ElrondNetwork/elrond-go/debug/process"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/facade/disabled"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -199,6 +200,8 @@ func (nr *nodeRunner) shuffleOutStatsAndGC() {
 func (nr *nodeRunner) executeOneComponentCreationCycle(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (bool, error) {
+	process2.TX_DEBUGGER.Clear()
+
 	goRoutinesNumberStart := runtime.NumGoroutine()
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig

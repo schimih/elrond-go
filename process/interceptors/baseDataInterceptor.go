@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	process2 "github.com/ElrondNetwork/elrond-go/debug/process"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -100,6 +101,11 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		"seq no", p2p.MessageOriginatorSeq(msg),
 		"data", data.String(),
 	)
+
+	if data.Type() == "intercepted tx" {
+		process2.TX_DEBUGGER.AddTx(string(data.Hash()))
+	}
+
 	bdi.processDebugInterceptedData(data, err)
 }
 
