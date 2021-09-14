@@ -383,7 +383,8 @@ func (ns *NodesSetup) GetStartTime() int64 {
 
 // GetRoundDuration returns the round duration
 func (ns *NodesSetup) GetRoundDuration() uint64 {
-	return ns.RoundDuration
+	//TODO revert this hardcoded value
+	return 4000
 }
 
 // GetShardConsensusGroupSize returns the shard consensus group size

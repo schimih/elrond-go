@@ -202,7 +202,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	roundHandler, err := round.NewRound(
 		genesisTime,
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
+		time.Millisecond*time.Duration(genesisNodesConfig.GetRoundDuration()),
 		syncer,
 		startRound,
 	)
@@ -257,7 +257,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		MetaConsensusSize:        genesisNodesConfig.MetaChainConsensusGroupSize,
 		ShardMinNodes:            genesisNodesConfig.MinNodesPerShard,
 		MetaMinNodes:             genesisNodesConfig.MetaChainMinNodes,
-		RoundDurationMiliseconds: genesisNodesConfig.RoundDuration,
+		RoundDurationMiliseconds: genesisNodesConfig.GetRoundDuration(),
 	}
 	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
 	if err != nil {
