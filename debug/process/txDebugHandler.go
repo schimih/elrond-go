@@ -7,7 +7,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
-const maxDuration = time.Second * 6
+const maxDuration = time.Second * 10
 
 var TX_DEBUGGER = NewTxDebugHandler()
 var log = logger.GetOrCreate("debug")
