@@ -17,13 +17,15 @@ type txItem struct {
 }
 
 type txDebugHandler struct {
-	mut   sync.RWMutex
-	txMap map[string]txItem
+	mut     sync.RWMutex
+	txMap   map[string]txItem
+	history map[string]struct{}
 }
 
 func NewTxDebugHandler() *txDebugHandler {
 	tdh := &txDebugHandler{
-		txMap: make(map[string]txItem),
+		txMap:   make(map[string]txItem),
+		history: make(map[string]struct{}),
 	}
 
 	go tdh.check()
@@ -33,21 +35,29 @@ func NewTxDebugHandler() *txDebugHandler {
 
 func (tdh *txDebugHandler) AddTx(hash string) {
 	tdh.mut.Lock()
+	defer tdh.mut.Unlock()
+
+	_, found := tdh.history[hash]
+	if found {
+		return
+	}
+
 	tdh.txMap[hash] = txItem{
 		timeStamp: time.Now(),
 	}
-	tdh.mut.Unlock()
 }
 
 func (tdh *txDebugHandler) RemoveTx(hash string) {
 	tdh.mut.Lock()
 	delete(tdh.txMap, hash)
+	tdh.history[hash] = struct{}{}
 	tdh.mut.Unlock()
 }
 
 func (tdh *txDebugHandler) Clear() {
 	tdh.mut.Lock()
 	tdh.txMap = make(map[string]txItem)
+	tdh.history = make(map[string]struct{})
 	tdh.mut.Unlock()
 }
 
