@@ -424,7 +424,39 @@ func (txs *transactions) processTxsToMe(
 		}
 	}
 
+	if len(body.MiniBlocks) != 0 {
+		currentMB := body.MiniBlocks[0]
+		txs.displayMiniblockTxsGas(currentMB, txsToMe)
+	}
+
 	return nil
+}
+
+func (txs *transactions) displayMiniblockTxsGas(currentMB *block.MiniBlock, txsToMe []*txcache.WrappedTransaction) {
+	if currentMB == nil {
+		return
+	}
+
+	hash, err := core.CalculateHash(txs.marshalizer, txs.hasher, currentMB)
+	if err != nil {
+		log.Warn("displayMiniblockTxsGas - failed to marshal miniblock for display", "error", err)
+		return
+	}
+
+	gasConsumed := uint64(0)
+	gasRefunded := uint64(0)
+	for index := range txsToMe {
+		gasConsumed += txs.gasHandler.GasConsumed(txsToMe[index].TxHash)
+		gasRefunded += txs.gasHandler.GasRefunded(txsToMe[index].TxHash)
+	}
+
+	log.Debug("displayMiniblockTxsGas",
+		"hash", hash,
+		"senderShardID", currentMB.SenderShardID,
+		"receiverShardID", currentMB.ReceiverShardID,
+		"gasConsumed", gasConsumed,
+		"gasRefunded", gasRefunded,
+		"percent refunded", fmt.Sprintf("%.2f%%", float64(gasRefunded*100)/float64(gasConsumed+gasRefunded)))
 }
 
 func (txs *transactions) processTxsFromMe(
@@ -809,6 +841,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 	mapMiniBlocks[core.MetachainShardId] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), core.MetachainShardId, block.TxBlock)
 
+	sumRefundedGasSelfShard := uint64(0)
+	sumGasRefunded := uint64(0)
 	for index := range sortedTxs {
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlocksFromMe")
@@ -857,7 +891,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		}
 
 		if isShardStuck != nil && isShardStuck(receiverShardID) {
-			log.Trace("shard is stuck", "shard", receiverShardID)
+			log.Debug("shard is stuck", "shard", receiverShardID)
 			continue
 		}
 
@@ -949,10 +983,12 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		senderAddressToSkip = []byte("")
 
 		gasRefunded := txs.gasHandler.GasRefunded(txHash)
+		sumGasRefunded += gasRefunded
 		if senderShardID == receiverShardID {
 			gasConsumedByMiniBlocksInSenderShard -= gasRefunded
 			totalGasConsumedInSelfShard -= gasRefunded
 			mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] -= gasRefunded
+			sumRefundedGasSelfShard += gasRefunded
 		}
 
 		if errors.Is(err, process.ErrFailedTransaction) {
@@ -999,14 +1035,23 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	log.Debug("createAndProcessMiniBlocksFromMe",
 		"self shard", txs.shardCoordinator.SelfId(),
 		"gas consumed in sender shard", gasConsumedByMiniBlocksInSenderShard,
-		"total gas consumed in self shard", totalGasConsumedInSelfShard)
+		"total gas consumed in self shard", common.GasToBillion(totalGasConsumedInSelfShard),
+		"gas refunded self shard", common.GasToBillion(sumRefundedGasSelfShard),
+		"total gas refunded", common.GasToBillion(sumGasRefunded))
 
 	for _, miniBlock := range miniBlocks {
+		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock)
+		if err != nil {
+			log.Debug("mini block info - computeTxsFromMiniBlock", "error", err)
+		} else {
+			txs.displayMiniblockTxsGas(miniBlock, txsFromMiniBlock)
+		}
+
 		log.Debug("mini block info",
 			"type", miniBlock.Type,
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
-			"gas consumed in receiver shard", mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID],
+			"gas consumed in receiver shard", common.GasToBillion(mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID]),
 			"txs added", len(miniBlock.TxHashes))
 	}
 
