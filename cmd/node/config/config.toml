@@ -596,7 +596,7 @@
 
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
-    CheckpointsEnabled = true
+    CheckpointsEnabled = false
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -613,7 +613,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 1, Version = "v1.3" },
-            { StartEpoch = 5, Version = "v1.4" },
+            { StartEpoch = 8, Version = "v1.4" },
         ]
 
     [VirtualMachine.Querying]
@@ -621,7 +621,7 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 1, Version = "v1.3" },
-            { StartEpoch = 5, Version = "v1.4" },
+            { StartEpoch = 8, Version = "v1.4" },
         ]
 
 [Hardfork]
@@ -710,8 +710,8 @@
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
     [Debug.EpochStart]
-        GoRoutineAnalyserEnabled = true
-        ProcessDataTrieOnCommitEpoch = true
+        GoRoutineAnalyserEnabled = false
+        ProcessDataTrieOnCommitEpoch = false
 
 [Health]
     IntervalVerifyMemoryInSeconds = 5
