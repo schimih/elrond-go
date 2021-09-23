@@ -59,7 +59,7 @@
     GetArgument        = 100
     GetFunction        = 100
     GetNumArguments    = 100
-    StorageStore       = 25000
+    StorageStore       = 75000
     StorageLoad        = 10000
     GetCaller          = 100
     GetCallValue       = 100
@@ -69,7 +69,7 @@
     GetBlockTimeStamp  = 10000
     GetGasLeft         = 100
     Int64GetArgument   = 100
-    Int64StorageStore  = 25000
+    Int64StorageStore  = 75000
     Int64StorageLoad   = 10000
     Int64Finish        = 1000
     GetStateRootHash   = 1000
@@ -161,7 +161,7 @@
     BigIntFinishUnsigned     = 1000
     BigIntFinishSigned       = 1000
     BigIntStorageLoadUnsigned   = 10000
-    BigIntStorageStoreUnsigned  = 25000
+    BigIntStorageStoreUnsigned  = 75000
     BigIntGetArgument           = 1000
     BigIntGetUnsignedArgument   = 1000
     BigIntGetSignedArgument     = 1000
@@ -201,7 +201,7 @@
     MBufferToBigIntSigned        = 1000
     MBufferFromBigIntUnsigned    = 4000
     MBufferFromBigIntSigned      = 1000
-    MBufferStorageStore          = 25000
+    MBufferStorageStore          = 75000
     MBufferStorageLoad           = 10000
     MBufferGetArgument           = 1000
     MBufferFinish                = 1000
