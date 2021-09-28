@@ -13,6 +13,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
 	github.com/ElrondNetwork/elrond-vm-common v1.2.1
 	github.com/ElrondNetwork/notifier-go v0.0.0-20210726084028-a78b3bbabc41
+	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
@@ -37,6 +38,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/pelletier/go-toml v1.9.3
+	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.6+incompatible
 	github.com/stretchr/testify v1.7.0
@@ -45,6 +47,7 @@ require (
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6
+	gopkg.in/DataDog/dd-trace-go.v1 v1.33.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
