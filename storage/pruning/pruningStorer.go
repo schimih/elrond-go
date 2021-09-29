@@ -320,8 +320,8 @@ func (ps *PruningStorer) createAndInitPersisterIfClosed(pd *persisterData) (stor
 
 func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Persister, func(), error) {
 	//this is considered a critical area, do not reuse this mutex somewhere else.
-	ps.lockCreateAndInitPersister.Lock()
-	defer ps.lockCreateAndInitPersister.Unlock()
+	//ps.lockCreateAndInitPersister.Lock()
+	//defer ps.lockCreateAndInitPersister.Unlock()
 
 	isOpen := !pd.getIsClosed()
 	if isOpen {
