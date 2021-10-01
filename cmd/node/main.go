@@ -50,8 +50,10 @@ VERSION:
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
 var appVersion = common.UnVersionedAppString
+var ballast []byte
 
 func main() {
+	ballast = make([]byte, 2200 * 1024 * 1024)
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
 
