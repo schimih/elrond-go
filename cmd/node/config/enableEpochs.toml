@@ -94,40 +94,40 @@
 
     # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
     # is enabled. The fix is done by adding an extra increment.
-    IncrementSCRNonceInMultiTransferEnableEpoch = 3
+    IncrementSCRNonceInMultiTransferEnableEpoch = 1000000
 
     # ESDTMultiTransferEnableEpoch represents the epoch when esdt multitransfer built in function is enabled
-    ESDTMultiTransferEnableEpoch = 5
+    ESDTMultiTransferEnableEpoch = 1000000
 
     # GlobalMintBurnDisableEpoch represents the epoch when the global mint and burn functions are disabled
-    GlobalMintBurnDisableEpoch = 5
+    GlobalMintBurnDisableEpoch = 1000000
 
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
-    ESDTTransferRoleEnableEpoch = 5
+    ESDTTransferRoleEnableEpoch = 1000000
 
     # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
-    BuiltInFunctionOnMetaEnableEpoch = 5
+    BuiltInFunctionOnMetaEnableEpoch = 1000000
 
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
-    ComputeRewardCheckpointEnableEpoch = 5
+    ComputeRewardCheckpointEnableEpoch = 1000000
 
     # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
-    SCRSizeInvariantCheckEnableEpoch = 5
+    SCRSizeInvariantCheckEnableEpoch = 1000000
 
     # BackwardCompSaveKeyValueEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
-    BackwardCompSaveKeyValueEnableEpoch = 5
+    BackwardCompSaveKeyValueEnableEpoch = 1000000
 
     # ESDTNFTCreateOnMultiShard represents the epoch when esdt nft creation is enabled on multiple shards
-    ESDTNFTCreateOnMultiShard = 6
+    ESDTNFTCreateOnMultiShard = 1000000
 
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
-    MetaESDTSetEnableEpoch = 6
+    MetaESDTSetEnableEpoch = 1000000
 
     # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
-    AddTokensToDelegationEnableEpoch = 6
+    AddTokensToDelegationEnableEpoch = 1000000
 
     # MultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer on callback fix is enabled
-    MultiESDTTransferFixOnCallBackOnEnableEpoch = 6
+    MultiESDTTransferFixOnCallBackOnEnableEpoch = 1000000
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
