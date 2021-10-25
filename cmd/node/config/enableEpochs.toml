@@ -118,36 +118,36 @@
     BackwardCompSaveKeyValueEnableEpoch = 1
 
     # ESDTNFTCreateOnMultiShard represents the epoch when esdt nft creation is enabled on multiple shards
-    ESDTNFTCreateOnMultiShard = 2
+    ESDTNFTCreateOnMultiShard = 7
 
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
-    MetaESDTSetEnableEpoch = 2
+    MetaESDTSetEnableEpoch = 7
 
     # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
-    AddTokensToDelegationEnableEpoch = 2
+    AddTokensToDelegationEnableEpoch = 7
 
     # MultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer on callback fix is enabled
-    MultiESDTTransferFixOnCallBackOnEnableEpoch = 2
+    MultiESDTTransferFixOnCallBackOnEnableEpoch = 7
 
     # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
-    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 2
+    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 7
 
     # CorrectFirstQueuedEpoch represents the epoch when the backward compatibility for setting the first queued node is enabled
-    CorrectFirstQueuedEpoch = 2
+    CorrectFirstQueuedEpoch = 7
 
     # DeleteDelegatorAfterClaimRewardsEnableEpoch represents the epoch when the delegators data is deleted for delegators that have to claim rewards after they widrawal all funds
-    DeleteDelegatorAfterClaimRewardsEnableEpoch = 2
+    DeleteDelegatorAfterClaimRewardsEnableEpoch = 7
 
     # FixOOGReturnCodeEnableEpoch represents the epoch when the backward compatibility returning out of gas error is enabled
-    FixOOGReturnCodeEnableEpoch = 2
+    FixOOGReturnCodeEnableEpoch = 7
 
     # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
-    RemoveNonUpdatedStorageEnableEpoch = 2
+    RemoveNonUpdatedStorageEnableEpoch = 7
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 1, MaxNumNodes = 36, NodesToShufflePerShard = 2 }
     ]
 
 [GasSchedule]
