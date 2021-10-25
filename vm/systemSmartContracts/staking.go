@@ -1307,8 +1307,7 @@ func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 		}
 
 		if len(prevElement.NextKey) == 0 {
-			s.eei.Finish([]byte(strconv.Itoa(int(index))))
-			return vmcommon.Ok
+			break
 		}
 		index++
 		copy(nextKey, prevElement.NextKey)
