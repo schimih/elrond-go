@@ -21,7 +21,7 @@
     
         # /node/heartbeatstatus will return all heartbeats messages from the nodes in the network
         { Name = "/heartbeatstatus", Open = true },
-    
+
         # /node/p2pstatus will return the metrics related to p2p
         { Name = "/p2pstatus", Open = true },
     
