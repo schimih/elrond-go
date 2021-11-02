@@ -232,12 +232,15 @@ func (tpc *txsPoolsCleaner) processReceivedTx(
 		tpc.mapTxsRounds[string(key)] = currTxInfo
 		tpc.mutMapTxsRounds.Unlock()
 
-		log.Trace("transaction has been added",
+		txInfoString := tpc.getTxInfo(currTxInfo, string(key))
+
+		log.Debug("transaction has been added",
 			"hash", key,
 			"round", currTxInfo.round,
 			"sender", currTxInfo.senderShardID,
 			"receiver", currTxInfo.receiverShardID,
-			"type", getTxTypeName(currTxInfo.txType))
+			"type", getTxTypeName(currTxInfo.txType),
+			txInfoString)
 	}
 }
 
@@ -276,12 +279,14 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 		delete(tpc.mapTxsRounds, hash)
 		numTxsCleaned++
 
-		log.Trace("transaction has been cleaned",
+		txInfoString := tpc.getTxInfo(currTxInfo, hash)
+		log.Debug("transaction has been cleaned",
 			"hash", []byte(hash),
 			"round", currTxInfo.round,
-			"sender", currTxInfo.senderShardID,
-			"receiver", currTxInfo.receiverShardID,
-			"type", getTxTypeName(currTxInfo.txType))
+			"senderShard", currTxInfo.senderShardID,
+			"receiverShard", currTxInfo.receiverShardID,
+			"type", getTxTypeName(currTxInfo.txType),
+			txInfoString)
 	}
 
 	numTxsRounds := len(tpc.mapTxsRounds)
@@ -300,6 +305,22 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 	}
 
 	return numTxsRounds
+}
+
+func (tpc *txsPoolsCleaner) getTxInfo(currTxInfo *txInfo, hash string) []string {
+	tx, _ := currTxInfo.txStore.Get([]byte(hash))
+	txInfoString := make([]string, 0)
+	if tx != nil {
+		transaction, ok := tx.(data.TransactionHandler)
+		if ok {
+			txInfoString = []string{
+				"senderAddress", tpc.addressPubkeyConverter.Encode(transaction.GetSndAddr()),
+				"receiver", tpc.addressPubkeyConverter.Encode(transaction.GetRcvAddr()),
+				"data", string(transaction.GetData()),
+			}
+		}
+	}
+	return txInfoString
 }
 
 func (tpc *txsPoolsCleaner) getTransactionPool(txType int8) dataRetriever.ShardedDataCacherNotifier {

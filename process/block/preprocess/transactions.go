@@ -268,6 +268,31 @@ func (txs *transactions) ProcessBlockTransactions(
 	}
 
 	if txs.isBodyFromMe(body) {
+		timeStamp := time.Now().Unix()
+		sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
+		if err == nil {
+			for index := range sortedTxs {
+				if !haveTime() {
+					log.Debug("time is out in createAndProcessMiniBlocksFromMe")
+					break
+				}
+
+				tx, ok := sortedTxs[index].Tx.(*transaction.Transaction)
+				if !ok {
+					continue
+				}
+
+				log.Debug("computeSortedTxs",
+					"timestamp", timeStamp,
+					"hash", sortedTxs[index].TxHash,
+					"score", sortedTxs[index].TxFeeScoreNormalized,
+					"sender", tx.SndAddr,
+					"receiver", tx.RcvAddr,
+					"data", tx.Data,
+				)
+			}
+		}
+
 		return txs.processTxsFromMe(body, haveTime)
 	}
 
