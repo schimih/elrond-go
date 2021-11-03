@@ -234,13 +234,18 @@ func (tpc *txsPoolsCleaner) processReceivedTx(
 
 		txInfoString := tpc.getTxInfo(currTxInfo, string(key))
 
-		log.Debug("transaction has been added",
+		initialMessage := []interface{}{
 			"hash", key,
 			"round", currTxInfo.round,
-			"sender", currTxInfo.senderShardID,
-			"receiver", currTxInfo.receiverShardID,
+			"sender shard", currTxInfo.senderShardID,
+			"receiver shard", currTxInfo.receiverShardID,
 			"type", getTxTypeName(currTxInfo.txType),
-			txInfoString)
+		}
+
+		messageArray := append(initialMessage, txInfoString...)
+
+		log.Debug("transaction has been added",
+			messageArray...)
 	}
 }
 
@@ -280,13 +285,17 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 		numTxsCleaned++
 
 		txInfoString := tpc.getTxInfo(currTxInfo, hash)
-		log.Debug("transaction has been cleaned",
-			"hash", []byte(hash),
+
+		initialMessage := []interface{}{"hash", []byte(hash),
 			"round", currTxInfo.round,
 			"senderShard", currTxInfo.senderShardID,
 			"receiverShard", currTxInfo.receiverShardID,
 			"type", getTxTypeName(currTxInfo.txType),
-			txInfoString)
+		}
+		initialMessage = append(initialMessage, txInfoString...)
+
+		log.Debug("transaction has been cleaned",
+			initialMessage)
 	}
 
 	numTxsRounds := len(tpc.mapTxsRounds)
@@ -307,16 +316,21 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 	return numTxsRounds
 }
 
-func (tpc *txsPoolsCleaner) getTxInfo(currTxInfo *txInfo, hash string) []string {
+func (tpc *txsPoolsCleaner) getTxInfo(currTxInfo *txInfo, hash string) []interface{} {
 	tx, _ := currTxInfo.txStore.Get([]byte(hash))
-	txInfoString := make([]string, 0)
+	txInfoString := make([]interface{}, 0)
 	if tx != nil {
 		transaction, ok := tx.(data.TransactionHandler)
 		if ok {
-			txInfoString = []string{
+			txData := transaction.GetData()
+			if len(txData) > 100 {
+				txData = txData[0:100]
+			}
+
+			txInfoString = []interface{}{
 				"senderAddress", tpc.addressPubkeyConverter.Encode(transaction.GetSndAddr()),
 				"receiver", tpc.addressPubkeyConverter.Encode(transaction.GetRcvAddr()),
-				"data", string(transaction.GetData()),
+				"data", string(txData),
 			}
 		}
 	}

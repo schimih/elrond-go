@@ -282,13 +282,19 @@ func (txs *transactions) ProcessBlockTransactions(
 					continue
 				}
 
+				txData := tx.Data
+				if len(txData) > 100 {
+					txData = txData[:100]
+				}
 				log.Debug("computeSortedTxs",
 					"timestamp", timeStamp,
 					"hash", sortedTxs[index].TxHash,
 					"score", sortedTxs[index].TxFeeScoreNormalized,
 					"sender", tx.SndAddr,
+					"senderBech32", txs.pubkeyConverter.Encode(tx.SndAddr),
 					"receiver", tx.RcvAddr,
-					"data", tx.Data,
+					"receiverBech32", txs.pubkeyConverter.Encode(tx.RcvAddr),
+					"data", string(txData),
 				)
 			}
 		}

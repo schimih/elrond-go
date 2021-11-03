@@ -131,6 +131,14 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 
 			resultFillIndex += journal.copied
 			copiedInThisPass += journal.copied
+
+			log.Debug("snapshotOfSenders",
+				"pass", pass,
+				"sender", []byte(txList.sender),
+				"numSelectedThisPass", journal.copied,
+				"batchSizeWithScoreCoefficient", batchSizeWithScoreCoefficient,
+			)
+
 			resultIsFull = resultFillIndex == numRequested
 			if resultIsFull {
 				break
