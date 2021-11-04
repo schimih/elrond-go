@@ -70,17 +70,20 @@ func (pd *persisterData) getPersister() storage.Persister {
 
 func (pd *persisterData) setPersisterAndIsClosed(persister storage.Persister, isClosed bool) {
 	pd.Lock()
+	pd.setPersisterAndIsClosedNoMutex(persister, isClosed)
+	pd.Unlock()
+}
+
+func (pd *persisterData) setPersisterAndIsClosedNoMutex(persister storage.Persister, isClosed bool) {
 	pd.persister = persister
 	pd.isClosed = isClosed
-	pd.Unlock()
 }
 
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
-	lock                       sync.RWMutex
-	lockCreateAndInitPersister sync.Mutex
-	shardCoordinator           storage.ShardCoordinator
-	activePersisters           []*persisterData
+	lock             sync.RWMutex
+	shardCoordinator storage.ShardCoordinator
+	activePersisters []*persisterData
 	//it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
 	persistersMapByEpoch   map[uint32]*persisterData
 	cacher                 storage.Cacher
@@ -310,9 +313,8 @@ func (ps *PruningStorer) createAndInitPersisterIfClosed(pd *persisterData) (stor
 }
 
 func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Persister, func(), error) {
-	//this is considered a critical area, do not reuse this mutex somewhere else.
-	ps.lockCreateAndInitPersister.Lock()
-	defer ps.lockCreateAndInitPersister.Unlock()
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
 
 	isOpen := !pd.getIsClosed()
 	if isOpen {
@@ -333,7 +335,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 		}
 	}
 
-	pd.setPersisterAndIsClosed(persister, false)
+	pd.setPersisterAndIsClosedNoMutex(persister, false)
 
 	return persister, closeFunc, nil
 }
