@@ -170,9 +170,12 @@ func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) 
 func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.Persister, error) {
 	epochString := fmt.Sprintf("%d", epoch)
 
-	fhps.lock.RLock()
+	fhps.lock.Lock()
+	defer fhps.lock.Unlock()
+
+	//fhps.lock.RLock()
 	pdata, exists := fhps.getPersisterData(epochString, epoch)
-	fhps.lock.RUnlock()
+	//fhps.lock.RUnlock()
 
 	if exists {
 		isClosed := pdata.getIsClosed()
@@ -181,8 +184,8 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 		}
 	}
 
-	fhps.lock.Lock()
-	defer fhps.lock.Unlock()
+//	fhps.lock.Lock()
+	//defer fhps.lock.Unlock()
 
 	pdata, exists = fhps.getPersisterData(epochString, epoch)
 	if !exists {

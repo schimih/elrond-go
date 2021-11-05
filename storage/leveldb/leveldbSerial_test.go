@@ -1,17 +1,31 @@
 package leveldb_test
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
+	"sync"
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	ldbLib "github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
 	dir, _ := ioutil.TempDir("", "leveldb_temp")
+	lvdb, err := leveldb.NewSerialDB(dir, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+
+	assert.Nil(t, err, "Failed creating leveldb database file")
+	return lvdb
+}
+
+func createSerialLevelDbAtPath(t *testing.T, dir string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
 	lvdb, err := leveldb.NewSerialDB(dir, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
@@ -186,4 +200,105 @@ func TestSerialDB_Destroy(t *testing.T) {
 	err := ldb.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
+}
+
+func TestNewSdb(t *testing.T) {
+	t.Skip()
+
+	path := "t-dir"
+	err := os.MkdirAll(path, 0700)
+	require.NoError(t, err)
+
+	ldb, err := ldbLib.OpenFile(path, &opt.Options{
+		BlockCacheCapacity:     -1,
+		OpenFilesCacheCapacity: 10,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, ldb)
+
+	//err = ldb.Close()
+	//require.NoError(t, err)
+
+	ldb, err = ldbLib.OpenFile(path, &opt.Options{
+		BlockCacheCapacity:     -1,
+		OpenFilesCacheCapacity: 10,
+	})
+	require.NoError(t, err)
+}
+
+func TestSerialDB_CloseConcurrentSafe(t *testing.T) {
+	t.Skip()
+
+	mt := sync.RWMutex{}
+	//ldb := createSerialLevelDb(t, 10, 1, 10)
+
+	logger.SetLogLevel("*:DEBUG")
+	var db *leveldb.SerialDB
+
+	dir, _ := ioutil.TempDir("", "leveldb_temp")
+	isClosed := true
+
+	wg := sync.WaitGroup{}
+	wg.Add(500)
+	for i := 0; i < 500; i++ {
+		go func(idx int) {
+			switch idx % 4 {
+			case 0:
+				mt.Lock()
+				if isClosed {
+					db = createSerialLevelDbAtPath(t, dir, 10, 1, 10)
+					isClosed = false
+				}
+				mt.Unlock()
+			case 1:
+				mt.Lock()
+				if db != nil && !isClosed {
+					fmt.Println("<<<>>>> called Close()")
+					err := db.Close()
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+					fmt.Println("<<<>>>> finished Close()")
+					isClosed = true
+				}
+				mt.Unlock()
+			case 2:
+				mt.Lock()
+				if db != nil && !isClosed {
+					_ = db.Put([]byte("key"), []byte("val"))
+				}
+				mt.Unlock()
+			case 3:
+				mt.Lock()
+				if db != nil && !isClosed {
+					_, _ = db.Get([]byte("key"))
+				}
+				mt.Unlock()
+			}
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+}
+
+func TestLL(t *testing.T) {
+	logger.SetLogLevel("*:DEBUG")
+	var db *leveldb.SerialDB
+
+	dir := "tempdir"
+	db = createSerialLevelDbAtPath(t, dir, 10, 1, 10)
+
+	err := db.Put([]byte("key"), []byte("val"))
+	require.NoError(t, err)
+
+	time.Sleep(1 * time.Second)
+
+	err = db.Close()
+	require.NoError(t, err)
+
+	//time.Sleep(1 *time.Microsecond)
+
+	db = createSerialLevelDbAtPath(t, dir, 10, 1, 10)
+
+	time.Sleep(30 * time.Second)
 }

@@ -775,20 +775,20 @@ func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
 	err = ps.ChangeEpochSimple(1)
 	require.Nil(t, err)
 	ps.ClearCache()
-	restauredVal0, err := ps.Get(key0)
+	restoredVal0, err := ps.Get(key0)
 	require.Nil(t, err)
-	require.Equal(t, val0, restauredVal0)
+	require.Equal(t, val0, restoredVal0)
 
-	restauredVal1, err := ps.Get(key1)
+	restoredVal1, err := ps.Get(key1)
 	require.Nil(t, err)
-	require.Equal(t, val1, restauredVal1)
+	require.Equal(t, val1, restoredVal1)
 
 	err = ps.ChangeEpochSimple(2)
 	require.Nil(t, err)
 	ps.ClearCache()
-	restauredVal2, err := ps.Get(key2)
+	restoredVal2, err := ps.Get(key2)
 	require.Nil(t, err)
-	require.Equal(t, val2, restauredVal2)
+	require.Equal(t, val2, restoredVal2)
 }
 
 func TestRegex(t *testing.T) {

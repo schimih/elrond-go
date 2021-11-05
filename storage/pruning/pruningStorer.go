@@ -45,20 +45,36 @@ func (pd *persisterData) getIsClosed() bool {
 	pd.RLock()
 	defer pd.RUnlock()
 
+	log.Info("get is closed for persister", "path", pd.path, "isClosed", pd.isClosed, "pd pointer", fmt.Sprintf("%p", pd))
 	return pd.isClosed
 }
 
 func (pd *persisterData) setIsClosed(closed bool) {
 	pd.Lock()
+	log.Info("set is closed for persister", "path", pd.path, "closed", closed, "pd pointer", fmt.Sprintf("%p", pd))
 	pd.isClosed = closed
 	pd.Unlock()
 }
 
+func (pd *persisterData) setIsClosedUnprotected(closed bool) {
+	log.Info("set is closed unprotected for persister", "path", pd.path, "closed", closed, "pd pointer", fmt.Sprintf("%p", pd))
+	pd.isClosed = closed
+}
+
 // Close closes the underlying persister
 func (pd *persisterData) Close() error {
-	pd.setIsClosed(true)
+	pd.Lock()
+	defer pd.Unlock()
+
+	log.Info("closing persister", "path", pd.path, "pd pointer", fmt.Sprintf("%p", pd))
 	err := pd.persister.Close()
-	return err
+	if err != nil {
+		return err
+	}
+
+	pd.setIsClosedUnprotected(true)
+
+	return nil
 }
 
 func (pd *persisterData) getPersister() storage.Persister {
@@ -371,6 +387,9 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 // Close will close PruningStorer
 func (ps *PruningStorer) Close() error {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
 	closedSuccessfully := true
 	for _, pd := range ps.activePersisters {
 		err := pd.Close()
@@ -643,8 +662,13 @@ func (ps *PruningStorer) saveHeaderForEpochStartPrepare(header data.HeaderHandle
 
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
+	fmt.Printf("<<<<>>>>> starting epoch change - %d\n", header.GetEpoch())
 	ps.lock.Lock()
-	defer ps.lock.Unlock()
+	fmt.Printf("<<<<>>>>> acquired mutex epoch change - %d\n", header.GetEpoch())
+	defer func() {
+		fmt.Printf("<<<<>>>>> finished epoch change - %d\n", header.GetEpoch())
+		ps.lock.Unlock()
+	}()
 
 	epoch := header.GetEpoch()
 	log.Debug("PruningStorer - change epoch", "unit", ps.identifier, "epoch", epoch)
@@ -680,6 +704,8 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		path:      filePath,
 		isClosed:  false,
 	}
+
+	log.Info("created new persister data", "path", filePath, "pd pointer", fmt.Sprintf("%p", newPersister))
 
 	singleItemPersisters := []*persisterData{newPersister}
 
@@ -754,17 +780,6 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 		oldestEpochActive = 0
 	}
 
-	maxEpoch := uint32(0)
-	for epochInMap := range ps.persistersMapByEpoch {
-		if epochInMap > maxEpoch {
-			maxEpoch = epochInMap
-		}
-	}
-
-	if maxEpoch > epoch {
-		return nil
-	}
-
 	persisters := make([]*persisterData, 0)
 	for e := int64(epoch); e >= oldestEpochActive; e-- {
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
@@ -780,6 +795,7 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 			if err != nil {
 				return err
 			}
+			p.setIsClosed(false)
 		}
 
 		activePersisters = append(activePersisters, p)
@@ -893,6 +909,7 @@ func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shard string) (
 		path:      filePath,
 		isClosed:  false,
 	}
+	log.Info("createPersisterDataForEpoch", "path", filePath, "pd pointer", fmt.Sprintf("%p", p))
 
 	return p, nil
 }

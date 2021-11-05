@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -57,6 +58,8 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
 
+	debug.PrintStack()
+
 	bldb := &baseLevelDb{
 		db: db,
 	}
@@ -80,7 +83,10 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 	go dbStore.processLoop(ctx)
 
 	runtime.SetFinalizer(dbStore, func(db *SerialDB) {
-		_ = db.Close()
+		fmt.Println("========= enter Finalizer - db.Close()")
+		_ = db.handleCloseLevelDB()
+
+		fmt.Println("========= exit Finalizer - db.Close()")
 	})
 
 	log.Debug("opened serial level db persister", "path", path)
@@ -258,6 +264,7 @@ func (s *SerialDB) Close() error {
 	defer s.mutClosed.Unlock()
 
 	if s.closed {
+		fmt.Println("+++++++++++ - skip closing - already closed, " + s.path)
 		return nil
 	}
 
@@ -266,10 +273,20 @@ func (s *SerialDB) Close() error {
 	defer s.closer.Close()
 
 	s.closed = true
-	_ = s.putBatch()
+	fmt.Println("!!!!!!!!!!!! - set is closed " + s.path)
+	err := s.putBatch()
+	if err != nil {
+		log.Warn("SerialDB.Close(): putBatch", "error", err)
+	}
 
 	s.cancel()
 
+	return s.handleCloseLevelDB()
+}
+
+func (s *SerialDB) handleCloseLevelDB() error {
+	debug.PrintStack()
+	log.Warn("closing level db", "path", s.path)
 	return s.db.Close()
 }
 
