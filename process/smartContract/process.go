@@ -304,7 +304,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	duration := sw.GetMeasurement("execute")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txData := tx.GetData()
+		if len(txData) > 100 {
+			txData = txData[:100]
+		}
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(txData))
 	} else {
 		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}

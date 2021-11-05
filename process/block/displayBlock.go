@@ -18,18 +18,22 @@ import (
 )
 
 type transactionCounter struct {
-	mutex           sync.RWMutex
-	currentBlockTxs uint64
-	totalTxs        uint64
+	mutex                  sync.RWMutex
+	currentBlockTxs        uint64
+	currentBlockTxCounter  uint64
+	currentBlockScrCounter uint64
+	totalTxs               uint64
 }
 
 // NewTransactionCounter returns a new object that keeps track of how many transactions
 // were executed in total, and in the current block
 func NewTransactionCounter() *transactionCounter {
 	return &transactionCounter{
-		mutex:           sync.RWMutex{},
-		currentBlockTxs: 0,
-		totalTxs:        0,
+		mutex:                  sync.RWMutex{},
+		currentBlockTxs:        0,
+		currentBlockTxCounter:  0,
+		currentBlockScrCounter: 0,
+		totalTxs:               0,
 	}
 }
 
@@ -80,6 +84,8 @@ func (txc *transactionCounter) displayLogInfo(
 	arguments := []interface{}{
 		"total txs processed", txc.totalTxs,
 		"block txs processed", txc.currentBlockTxs,
+		"block txs", txc.currentBlockTxCounter,
+		"block scrs", txc.currentBlockScrCounter,
 		"num shards", numShards,
 		"shard", selfId,
 	}
@@ -162,7 +168,8 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 
 func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, body *block.Body) []*display.LineData {
 	currentBlockTxs := 0
-
+	scrCounter := 0
+	txCounter := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
@@ -176,8 +183,14 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 				part, "", "<EMPTY>"}))
 		}
 
-		currentBlockTxs += len(miniBlock.TxHashes)
-
+		mbLen := len(miniBlock.TxHashes)
+		currentBlockTxs += mbLen
+		if miniBlock.Type == block.SmartContractResultBlock {
+			scrCounter += mbLen
+		}
+		if miniBlock.Type == block.TxBlock {
+			txCounter += mbLen
+		}
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
 				lines = append(lines, display.NewLineData(false, []string{
@@ -203,6 +216,8 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 	txc.mutex.Lock()
 	txc.currentBlockTxs = uint64(currentBlockTxs)
 	txc.totalTxs += uint64(currentBlockTxs)
+	txc.currentBlockTxCounter = uint64(txCounter)
+	txc.currentBlockScrCounter = uint64(scrCounter)
 	txc.mutex.Unlock()
 
 	return lines
