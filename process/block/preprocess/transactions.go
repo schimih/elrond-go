@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -268,41 +269,45 @@ func (txs *transactions) ProcessBlockTransactions(
 	}
 
 	if txs.isBodyFromMe(body) {
-		timeStamp := time.Now().Unix()
-		sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
-		if err == nil {
-			for index := range sortedTxs {
-				if !haveTime() {
-					log.Debug("time is out in createAndProcessMiniBlocksFromMe")
-					break
-				}
-
-				tx, ok := sortedTxs[index].Tx.(*transaction.Transaction)
-				if !ok {
-					continue
-				}
-
-				txData := tx.Data
-				if len(txData) > 100 {
-					txData = txData[:100]
-				}
-				log.Debug("computeSortedTxs",
-					"timestamp", timeStamp,
-					"hash", sortedTxs[index].TxHash,
-					"score", sortedTxs[index].TxFeeScoreNormalized,
-					"sender", tx.SndAddr,
-					"senderBech32", txs.pubkeyConverter.Encode(tx.SndAddr),
-					"receiver", tx.RcvAddr,
-					"receiverBech32", txs.pubkeyConverter.Encode(tx.RcvAddr),
-					"data", string(txData),
-				)
-			}
-		}
+		txs.computeSortedTxsAsProposer(haveTime)
 
 		return txs.processTxsFromMe(body, haveTime)
 	}
 
 	return process.ErrInvalidBody
+}
+
+func (txs *transactions) computeSortedTxsAsProposer(haveTime func() bool) {
+	timeStamp := time.Now().Unix()
+	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
+	if err == nil {
+		for index := range sortedTxs {
+			if !haveTime() {
+				log.Debug("time is out in createAndProcessMiniBlocksFromMe")
+				break
+			}
+
+			tx, ok := sortedTxs[index].Tx.(*transaction.Transaction)
+			if !ok {
+				continue
+			}
+
+			txData := tx.Data
+			if len(txData) > 100 {
+				txData = txData[:100]
+			}
+			log.Debug("computeSortedTxs",
+				"timestamp", timeStamp,
+				"hash", sortedTxs[index].TxHash,
+				"score", sortedTxs[index].TxFeeScoreNormalized,
+				"sender", tx.SndAddr,
+				"senderBech32", txs.pubkeyConverter.Encode(tx.SndAddr),
+				"receiver", tx.RcvAddr,
+				"receiverBech32", txs.pubkeyConverter.Encode(tx.RcvAddr),
+				"data", string(txData),
+			)
+		}
+	}
 }
 
 func (txs *transactions) computeTxsToMe(body *block.Body) ([]*txcache.WrappedTransaction, error) {
@@ -427,7 +432,7 @@ func (txs *transactions) processTxsToMe(
 	totalGasConsumedInSelfShard := txs.getTotalGasConsumed()
 
 	log.Trace("processTxsToMe", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
-
+	claimLockedAssetsNr := 0
 	for index := range txsToMe {
 		if !haveTime() {
 			return process.ErrTimeIsOut
@@ -436,6 +441,10 @@ func (txs *transactions) processTxsToMe(
 		tx, ok := txsToMe[index].Tx.(*transaction.Transaction)
 		if !ok {
 			return process.ErrWrongTypeAssertion
+		}
+
+		if strings.HasPrefix(string(tx.GetData()), "claimLockedAssets") {
+			claimLockedAssetsNr++
 		}
 
 		txHash := txsToMe[index].TxHash
@@ -468,6 +477,8 @@ func (txs *transactions) processTxsToMe(
 
 		txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
+
+	log.Debug("claimLockedAssets-toMe", "nr", claimLockedAssetsNr)
 
 	return nil
 }
@@ -854,7 +865,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	}
 
 	mapMiniBlocks[core.MetachainShardId] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), core.MetachainShardId, block.TxBlock)
-
+	claimLockedAssetsNr := 0
 	for index := range sortedTxs {
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlocksFromMe")
@@ -873,6 +884,10 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		txHash := sortedTxs[index].TxHash
 		senderShardID := sortedTxs[index].SenderShardID
 		receiverShardID := sortedTxs[index].ReceiverShardID
+
+		if strings.HasPrefix(string(tx.GetData()), "claimLockedAssets") {
+			claimLockedAssetsNr++
+		}
 
 		miniBlock, ok := mapMiniBlocks[receiverShardID]
 		if !ok {
@@ -1053,6 +1068,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		}
 		numTxsAdded++
 	}
+
+	log.Debug("claimLockedAssets-fromMe", "nr", claimLockedAssetsNr)
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
 
