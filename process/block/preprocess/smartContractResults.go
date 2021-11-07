@@ -292,6 +292,13 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 		}
 	}
+
+	log.Debug("ProcessBlockTransactions",
+		"gasConsumedByMiniBlockInSenderShard", gasConsumedByMiniBlockInSenderShard,
+		"gasConsumedByMiniBlockInReceiverShard", gasConsumedByMiniBlockInReceiverShard,
+		"totalGasConsumedInSelfShard", totalGasConsumedInSelfShard,
+	)
+
 	return nil
 }
 
