@@ -477,8 +477,9 @@ func (txs *transactions) processTxsToMe(
 
 		txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
 	}
-
-	log.Debug("claimLockedAssets-toMe", "nr", claimLockedAssetsNr)
+	if claimLockedAssetsNr > 0 {
+		log.Debug("claimLockedAssets-toMe", "nr", claimLockedAssetsNr)
+	}
 
 	return nil
 }
@@ -1069,7 +1070,9 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		numTxsAdded++
 	}
 
-	log.Debug("claimLockedAssets-fromMe", "nr", claimLockedAssetsNr)
+	if claimLockedAssetsNr > 0 {
+		log.Debug("claimLockedAssets-fromMe", "nr", claimLockedAssetsNr)
+	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
 
