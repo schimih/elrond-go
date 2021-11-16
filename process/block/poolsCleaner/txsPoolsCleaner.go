@@ -286,7 +286,8 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 
 		txInfoString := tpc.getTxInfo(currTxInfo, hash)
 
-		initialMessage := []interface{}{"hash", []byte(hash),
+		initialMessage := []interface{}{
+			"hash", []byte(hash),
 			"round", currTxInfo.round,
 			"senderShard", currTxInfo.senderShardID,
 			"receiverShard", currTxInfo.receiverShardID,
@@ -295,7 +296,7 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 		initialMessage = append(initialMessage, txInfoString...)
 
 		log.Debug("transaction has been cleaned",
-			initialMessage)
+			initialMessage...)
 	}
 
 	numTxsRounds := len(tpc.mapTxsRounds)
