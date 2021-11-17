@@ -331,6 +331,7 @@ func (tpc *txsPoolsCleaner) getTxInfo(currTxInfo *txInfo, hash string) []interfa
 			txInfoString = []interface{}{
 				"senderAddress", tpc.addressPubkeyConverter.Encode(transaction.GetSndAddr()),
 				"receiver", tpc.addressPubkeyConverter.Encode(transaction.GetRcvAddr()),
+				"nonce", transaction.GetNonce(),
 				"data", string(txData),
 			}
 		}
