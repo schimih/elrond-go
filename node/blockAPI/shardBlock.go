@@ -4,21 +4,22 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
 )
 
 type shardAPIBlockProcessor struct {
-	*baseAPIBockProcessor
+	*baseAPIBlockProcessor
 }
 
 // NewShardApiBlockProcessor will create a new instance of shard api block processor
 func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
+
 	return &shardAPIBlockProcessor{
-		baseAPIBockProcessor: &baseAPIBockProcessor{
+		baseAPIBlockProcessor: &baseAPIBlockProcessor{
 			hasDbLookupExtensions:    hasDbLookupExtensions,
 			selfShardID:              arg.SelfShardID,
 			store:                    arg.Store,
@@ -26,6 +27,7 @@ func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcesso
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
 			unmarshalTx:              arg.UnmarshalTx,
+			txStatusComputer:         arg.StatusComputer,
 		},
 	}
 }
@@ -63,6 +65,16 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*a
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
 
 	return sbp.computeStatusAndPutInBlock(blockAPI, storerUnit)
+}
+
+// GetBlockByRound will return a shard APIBlock by round
+func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	headerHash, blockBytes, err := sbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
 }
 
 func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {

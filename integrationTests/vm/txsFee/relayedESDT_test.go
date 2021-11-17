@@ -1,15 +1,17 @@
 // +build !race
 
+// TODO remove build condition above to allow -race -short, after Arwen fix
+
 package txsFee
 
 import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +27,7 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 	relayerBalance := big.NewInt(10000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
 	gasPrice := uint64(10)
@@ -79,7 +81,7 @@ func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
 	relayerBalance := big.NewInt(10000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
 	gasPrice := uint64(10)

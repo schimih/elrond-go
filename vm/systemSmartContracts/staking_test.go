@@ -4,20 +4,25 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math"
 	"math/big"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/state"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,8 +45,6 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			UnJailValue:                          "1",
 			MinStepValue:                         "1",
 			UnBondPeriod:                         0,
-			StakingV2Epoch:                       10,
-			StakeEnableEpoch:                     0,
 			NumRoundsWithoutBleed:                0,
 			MaximumPercentageToBleed:             0,
 			BleedPercentagePerRound:              0,
@@ -50,6 +53,12 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			MinUnstakeTokensValue:                "1",
 		},
 		EpochNotifier: &mock.EpochNotifierStub{},
+		EpochConfig: config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2EnableEpoch: 10,
+				StakeEnableEpoch:     0,
+			},
+		},
 	}
 }
 
@@ -77,7 +86,7 @@ func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
 			GasProvided: 0,
-			CallType:    vmcommon.DirectCall,
+			CallType:    vmData.DirectCall,
 		},
 		RecipientAddr: []byte("rcpntaddr"),
 		Function:      "something",
@@ -135,7 +144,7 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockStakingScArguments()
@@ -159,7 +168,7 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 
 func TestStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) {
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
@@ -185,7 +194,7 @@ func TestStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 			return nil, state.ErrAccNotFound
 		},
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
@@ -280,7 +289,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		RewardAddress: []byte{100},
 		StakeValue:    big.NewInt(100),
 		JailedRound:   math.MaxUint64,
-		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		UnStakedEpoch: common.DefaultUnstakedEpoch,
 		SlashValue:    big.NewInt(0),
 	}
 
@@ -289,7 +298,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -362,7 +371,7 @@ func TestStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -395,7 +404,7 @@ func TestStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -438,7 +447,7 @@ func TestStakingSC_ExecuteUnStakeShouldErrorNotEnoughNodes(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -490,7 +499,7 @@ func TestStakingSC_ExecuteUnStake(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -592,7 +601,7 @@ func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
 		CurrentNonceCalled: func() uint64 {
 			return unstakedNonce + 1
 		},
-	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 	eei.SetStorage([]byte(ownerKey), []byte("data"))
 	eei.SetStorage(blsPubKey.Bytes(), marshalizedRegData)
@@ -625,7 +634,7 @@ func TestStakingSC_ExecuteUnBoundStillValidator(t *testing.T) {
 	}
 
 	peerAccount := state.NewEmptyPeerAccount()
-	peerAccount.List = string(core.EligibleList)
+	peerAccount.List = string(common.EligibleList)
 	stakeValue := big.NewInt(100)
 	marshalizedRegData, _ := json.Marshal(&registrationData)
 	eei, _ := NewVMContext(
@@ -636,8 +645,8 @@ func TestStakingSC_ExecuteUnBoundStillValidator(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		&stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return peerAccount, nil
 			}},
 		&mock.RaterMock{})
@@ -682,7 +691,7 @@ func TestStakingSC_ExecuteUnBound(t *testing.T) {
 		CurrentNonceCalled: func() uint64 {
 			return unstakedNonce + unBondPeriod + 1
 		},
-	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	scAddress := []byte("owner")
 	eei.SetSCAddress(scAddress)
 	eei.SetStorage([]byte(ownerKey), scAddress)
@@ -809,7 +818,7 @@ func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 	stakerAddress := []byte("address")
 	stakerPubKey := []byte("pubKey")
 	blockChainHook := &mock.BlockChainHookStub{}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 
 	smartcontractAddress := "smartcontractAddress"
 	eei.SetSCAddress([]byte(smartcontractAddress))
@@ -879,7 +888,7 @@ func TestStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
 	stakeValue := big.NewInt(100)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.Eei = eei
@@ -897,7 +906,7 @@ func TestStakingSC_ExecuteGetShouldOk(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
 	arguments.Arguments = [][]byte{arguments.CallerAddr}
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.Eei = eei
@@ -912,7 +921,7 @@ func TestStakingSc_ExecuteNilArgs(t *testing.T) {
 	t.Parallel()
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
@@ -937,7 +946,7 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -976,13 +985,13 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 	}
 
 	jailAccessAddr := []byte("jailAccessAddr")
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.StakeEnableEpoch = 10
+	args.EpochConfig.EnableEpochs.StakeEnableEpoch = 10
 	args.StakingAccessAddr = stakingAccessAddress
 	args.Eei = eei
 	args.StakingSCConfig.NumRoundsWithoutBleed = 100
@@ -1024,7 +1033,7 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 	}
 
 	jailAccessAddr := []byte("jailAccessAddr")
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1076,7 +1085,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1084,7 +1093,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1142,7 +1151,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1150,7 +1159,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1267,7 +1276,7 @@ func TestStakingSc_ExecuteStakeUnStakeJailCombinations(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1275,7 +1284,7 @@ func TestStakingSc_ExecuteStakeUnStakeJailCombinations(t *testing.T) {
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1355,7 +1364,7 @@ func TestStakingSc_UnBondFromWaitingNotPossible(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1413,7 +1422,7 @@ func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 		return nil, nil
 	}
 
-	accountsStub := &mock.AccountsStub{}
+	accountsStub := &stateMock.AccountsStub{}
 	raterStub := &mock.RaterMock{}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, accountsStub, raterStub)
 	eei.SetSCAddress([]byte("addr"))
@@ -1438,14 +1447,14 @@ func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 
 	peerAccount := state.NewEmptyPeerAccount()
-	accountsStub.GetExistingAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	accountsStub.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return peerAccount, nil
 	}
-	peerAccount.List = string(core.JailedList)
+	peerAccount.List = string(common.JailedList)
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"), vmcommon.UserError)
 	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.UserError)
 
-	peerAccount.List = string(core.EligibleList)
+	peerAccount.List = string(common.EligibleList)
 	peerAccount.TempRating = 9
 	raterStub.GetChancesCalled = func(u uint32) uint32 {
 		if u == 0 {
@@ -1466,7 +1475,7 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 		return nil, nil
 	}
 
-	accountsStub := &mock.AccountsStub{}
+	accountsStub := &stateMock.AccountsStub{}
 	raterStub := &mock.RaterMock{}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, accountsStub, raterStub)
 	eei.SetSCAddress([]byte("addr"))
@@ -1491,14 +1500,14 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 
 	peerAccount := state.NewEmptyPeerAccount()
-	accountsStub.GetExistingAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	accountsStub.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return peerAccount, nil
 	}
-	peerAccount.List = string(core.EligibleList)
+	peerAccount.List = string(common.EligibleList)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.UserError)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.UserError)
 
-	peerAccount.List = string(core.JailedList)
+	peerAccount.List = string(common.JailedList)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
 }
@@ -1512,7 +1521,7 @@ func TestStakingSc_updateConfigMinNodesOK(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1570,12 +1579,12 @@ func TestStakingSc_updateConfigMaxNodesOK(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 40
@@ -1624,12 +1633,12 @@ func TestStakingSC_SetOwnersOnAddressesNotEnabledShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 100
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 100
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1646,12 +1655,12 @@ func TestStakingSC_SetOwnersOnAddressesWrongCallerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1668,12 +1677,12 @@ func TestStakingSC_SetOwnersOnAddressesWrongArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1691,12 +1700,12 @@ func TestStakingSC_SetOwnersOnAddressesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1728,12 +1737,12 @@ func TestStakingSC_SetOwnersOnAddressesEmptyArgsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1749,12 +1758,12 @@ func TestStakingSC_GetOwnerStakingV2NotEnabledShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 100
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 100
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1771,12 +1780,12 @@ func TestStakingSC_GetOwnerWrongCallerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1793,12 +1802,12 @@ func TestStakingSC_GetOwnerWrongArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1815,12 +1824,12 @@ func TestStakingSC_GetOwnerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1855,14 +1864,14 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := vm.ValidatorSCAddress
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 100
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1968,7 +1977,7 @@ func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1999,7 +2008,7 @@ func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -2007,7 +2016,7 @@ func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
-	args.StakingSCConfig.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -2059,7 +2068,7 @@ func TestStakingSc_UnStakeNodeWhenMaxNumIsMoreShouldNotStakeFromWaiting(t *testi
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -2068,8 +2077,8 @@ func TestStakingSc_UnStakeNodeWhenMaxNumIsMoreShouldNotStakeFromWaiting(t *testi
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	args.MinNumNodes = 1
-	args.StakingSCConfig.StakingV2Epoch = 0
-	args.StakingSCConfig.CorrectLastUnjailedEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch = 0
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -2095,7 +2104,7 @@ func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -2163,6 +2172,693 @@ func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
 	doUnJail(t, sc, sc.stakeAccessAddr, []byte("secondKey"), vmcommon.Ok)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestStakingSc_RemoveFromWaitingListFirst(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		flag bool
+	}{
+		{
+			name: "BeforeFix",
+			flag: false,
+		},
+		{
+			name: "AfterFix",
+			flag: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			firstBLS := []byte("first")
+			firstKey := createWaitingListKey(firstBLS)
+			secondBLS := []byte("second")
+			secondKey := createWaitingListKey(secondBLS)
+
+			m := make(map[string]interface{})
+			m[string(firstKey)] = &ElementInList{firstBLS, firstKey, secondKey}
+			m[string(secondKey)] = &ElementInList{secondBLS, firstKey, nil}
+			m[waitingListHeadKey] = &WaitingList{firstKey, secondKey, 2, nil}
+
+			marshalizer := &marshal.JsonMarshalizer{}
+
+			blockChainHook := &mock.BlockChainHookStub{}
+			blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+				obj, ok := m[string(index)]
+				if ok {
+					return marshalizer.Marshal(obj)
+				}
+				return nil, nil
+			}
+
+			eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+			args := createMockStakingScArguments()
+			args.Marshalizer = marshalizer
+			args.Eei = eei
+			sc, _ := NewStakingSmartContract(args)
+			if tt.flag {
+				sc.flagCorrectFirstQueued.Set()
+			} else {
+				sc.flagCorrectFirstQueued.Unset()
+			}
+			err := sc.removeFromWaitingList(firstBLS)
+
+			assert.Nil(t, err)
+			wlh, err := sc.getWaitingListHead()
+			assert.Nil(t, err)
+			assert.NotNil(t, wlh)
+			assert.Equal(t, secondKey, wlh.FirstKey)
+			assert.Equal(t, secondKey, wlh.LastKey)
+		})
+	}
+}
+
+func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstBeforeFix(t *testing.T) {
+	t.Parallel()
+
+	firstBLS := []byte("first")
+	firstKey := createWaitingListKey(firstBLS)
+	secondBLS := []byte("second")
+	secondKey := createWaitingListKey(secondBLS)
+	thirdBLS := []byte("third")
+	thirdKey := createWaitingListKey(thirdBLS)
+
+	m := make(map[string]interface{})
+	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, secondKey}
+	// PreviousKey is set to self to look like it was the first
+	m[string(secondKey)] = &ElementInList{secondBLS, secondKey, thirdKey}
+	m[string(thirdKey)] = &ElementInList{thirdBLS, thirdKey, nil}
+	m[waitingListHeadKey] = &WaitingList{firstKey, thirdKey, 3, nil}
+
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, ok := m[string(index)]
+		if ok {
+			return marshalizer.Marshal(obj)
+		}
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Unset()
+
+	err := sc.removeFromWaitingList(secondBLS)
+	assert.Nil(t, err)
+	wlh, err := sc.getWaitingListHead()
+	assert.Nil(t, err)
+	assert.NotNil(t, wlh)
+	// Forgot about the initial first key and now the first is the third
+	assert.Equal(t, thirdKey, wlh.FirstKey)
+	assert.Equal(t, thirdKey, wlh.LastKey)
+
+	thirdElement, err := sc.getWaitingListElement(wlh.FirstKey)
+	assert.Nil(t, err)
+	assert.Equal(t, thirdKey, thirdElement.PreviousKey)
+	assert.Nil(t, thirdElement.NextKey)
+}
+
+func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstAfterFix(t *testing.T) {
+	t.Parallel()
+
+	firstBLS := []byte("first")
+	firstKey := createWaitingListKey(firstBLS)
+	secondBLS := []byte("second")
+	secondKey := createWaitingListKey(secondBLS)
+	thirdBLS := []byte("third")
+	thirdKey := createWaitingListKey(thirdBLS)
+
+	m := make(map[string]interface{})
+	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, secondKey}
+	// PreviousKey is set to self to look like it was the first
+	m[string(secondKey)] = &ElementInList{secondBLS, secondKey, thirdKey}
+	m[string(thirdKey)] = &ElementInList{thirdBLS, thirdKey, nil}
+	m[waitingListHeadKey] = &WaitingList{firstKey, thirdKey, 3, nil}
+
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, ok := m[string(index)]
+		if ok {
+			return marshalizer.Marshal(obj)
+		}
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Set()
+
+	err := sc.removeFromWaitingList(secondBLS)
+	assert.Nil(t, err)
+	wlh, err := sc.getWaitingListHead()
+	assert.Nil(t, err)
+	assert.NotNil(t, wlh)
+	assert.Equal(t, firstKey, wlh.FirstKey)
+	assert.Equal(t, thirdKey, wlh.LastKey)
+
+	firstElement, err := sc.getWaitingListElement(firstKey)
+	assert.Nil(t, err)
+	assert.Equal(t, firstKey, firstElement.PreviousKey)
+	assert.Equal(t, thirdKey, firstElement.NextKey)
+
+	thirdElement, err := sc.getWaitingListElement(thirdKey)
+	assert.Nil(t, err)
+	assert.Equal(t, firstKey, thirdElement.PreviousKey)
+	assert.Nil(t, nil, thirdElement.NextKey)
+}
+
+func TestStakingSc_RemoveFromWaitingListNotFoundPreviousShouldErrAndFinish(t *testing.T) {
+	t.Parallel()
+
+	firstBLS := []byte("first")
+	firstKey := createWaitingListKey(firstBLS)
+	secondBLS := []byte("second")
+	secondKey := createWaitingListKey(secondBLS)
+	thirdBLS := []byte("third")
+	thirdKey := createWaitingListKey(thirdBLS)
+	unknownBLS := []byte("unknown")
+	unknownKey := createWaitingListKey(unknownBLS)
+
+	m := make(map[string]interface{})
+	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, secondKey}
+	m[string(secondKey)] = &ElementInList{secondBLS, secondKey, nil}
+	m[string(thirdKey)] = &ElementInList{thirdBLS, unknownKey, nil}
+	m[waitingListHeadKey] = &WaitingList{firstKey, thirdKey, 3, nil}
+
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, ok := m[string(index)]
+		if ok {
+			return marshalizer.Marshal(obj)
+		}
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Set()
+
+	err := sc.removeFromWaitingList(thirdBLS)
+	assert.Equal(t, vm.ErrElementNotFound, err)
+}
+
+func TestStakingSc_InsertAfterLastJailedBeforeFix(t *testing.T) {
+	t.Parallel()
+
+	firstBLS := []byte("first")
+	firstKey := createWaitingListKey(firstBLS)
+	jailedBLS := []byte("jailedBLS")
+	jailedKey := createWaitingListKey(jailedBLS)
+
+	m := make(map[string]interface{})
+	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, nil}
+	waitingListHead := &WaitingList{firstKey, firstKey, 1, nil}
+	m[waitingListHeadKey] = waitingListHead
+
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, ok := m[string(index)]
+		if ok {
+			return marshalizer.Marshal(obj)
+		}
+
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Unset()
+	err := sc.insertAfterLastJailed(waitingListHead, jailedBLS)
+	assert.Nil(t, err)
+
+	wlh, err := sc.getWaitingListHead()
+	assert.Nil(t, err)
+	assert.NotNil(t, wlh)
+	assert.Equal(t, jailedKey, wlh.FirstKey)
+	assert.Equal(t, jailedKey, wlh.LastJailedKey)
+	// increase is done in the calling method
+	assert.Equal(t, uint32(1), wlh.Length)
+
+	firstElement, err := sc.getWaitingListElement(wlh.FirstKey)
+	assert.Nil(t, err)
+	assert.NotNil(t, firstElement)
+	assert.Equal(t, jailedBLS, firstElement.BLSPublicKey)
+	assert.Equal(t, jailedKey, firstElement.PreviousKey)
+	assert.Equal(t, firstKey, firstElement.NextKey)
+
+	previousFirstElement, err := sc.getWaitingListElement(firstElement.NextKey)
+	assert.Nil(t, err)
+	assert.NotNil(t, previousFirstElement)
+	assert.Equal(t, firstBLS, previousFirstElement.BLSPublicKey)
+	assert.Equal(t, firstKey, previousFirstElement.PreviousKey)
+	assert.Nil(t, previousFirstElement.NextKey)
+}
+
+func TestStakingSc_InsertAfterLastJailedAfterFix(t *testing.T) {
+	t.Parallel()
+
+	firstBLS := []byte("first")
+	firstKey := createWaitingListKey(firstBLS)
+	jailedBLS := []byte("jailedBLS")
+	jailedKey := createWaitingListKey(jailedBLS)
+
+	m := make(map[string]interface{})
+	m[string(firstKey)] = &ElementInList{firstBLS, firstKey, nil}
+	waitingListHead := &WaitingList{firstKey, firstKey, 1, nil}
+	m[waitingListHeadKey] = waitingListHead
+
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, ok := m[string(index)]
+		if ok {
+			return marshalizer.Marshal(obj)
+		}
+
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Set()
+	err := sc.insertAfterLastJailed(waitingListHead, jailedBLS)
+	assert.Nil(t, err)
+
+	wlh, err := sc.getWaitingListHead()
+	assert.Nil(t, err)
+	assert.NotNil(t, wlh)
+	assert.Equal(t, jailedKey, wlh.FirstKey)
+	assert.Equal(t, jailedKey, wlh.LastJailedKey)
+	// increase is done in the calling method
+	assert.Equal(t, uint32(1), wlh.Length)
+
+	firstElement, err := sc.getWaitingListElement(wlh.FirstKey)
+	assert.Nil(t, err)
+	assert.NotNil(t, firstElement)
+	assert.Equal(t, jailedBLS, firstElement.BLSPublicKey)
+	assert.Equal(t, jailedKey, firstElement.PreviousKey)
+	assert.Equal(t, firstKey, firstElement.NextKey)
+
+	previousFirstElement, err := sc.getWaitingListElement(firstElement.NextKey)
+	assert.Nil(t, err)
+	assert.NotNil(t, previousFirstElement)
+	assert.Equal(t, firstBLS, previousFirstElement.BLSPublicKey)
+	assert.Equal(t, jailedKey, previousFirstElement.PreviousKey)
+	assert.Nil(t, previousFirstElement.NextKey)
+}
+
+func TestStakingSc_InsertAfterLastJailedAfterFixWithEmptyQueue(t *testing.T) {
+	t.Parallel()
+
+	jailedBLS := []byte("jailedBLS")
+	jailedKey := createWaitingListKey(jailedBLS)
+
+	m := make(map[string]interface{})
+	waitingListHead := &WaitingList{nil, nil, 0, nil}
+	m[waitingListHeadKey] = waitingListHead
+
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, ok := m[string(index)]
+		if ok {
+			return marshalizer.Marshal(obj)
+		}
+
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Set()
+	err := sc.insertAfterLastJailed(waitingListHead, jailedBLS)
+	assert.Nil(t, err)
+
+	wlh, err := sc.getWaitingListHead()
+	assert.Nil(t, err)
+	assert.NotNil(t, wlh)
+	assert.Equal(t, jailedKey, wlh.FirstKey)
+	assert.Equal(t, jailedKey, wlh.LastJailedKey)
+
+	firstElement, err := sc.getWaitingListElement(wlh.FirstKey)
+	assert.Nil(t, err)
+	assert.NotNil(t, firstElement)
+	assert.Equal(t, jailedBLS, firstElement.BLSPublicKey)
+	assert.Equal(t, jailedKey, firstElement.PreviousKey)
+	assert.Equal(t, 0, len(firstElement.NextKey))
+}
+
+func TestStakingSc_getWaitingListRegisterNonceAndRewardAddressWhenLengthIsHigherThanOne(t *testing.T) {
+	t.Parallel()
+
+	waitingBlsKeys := [][]byte{
+		[]byte("waitingBlsKey1"),
+		[]byte("waitingBlsKey2"),
+		[]byte("waitingBlsKey3"),
+	}
+	sc, eei, marshalizer, stakingAccessAddress := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+	alterWaitingListLength(t, eei, marshalizer)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getQueueRegisterNonceAndRewardAddress"
+	arguments.CallerAddr = stakingAccessAddress
+	arguments.Arguments = make([][]byte, 0)
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.Equal(t, 3*len(waitingBlsKeys), len(eei.output))
+	for i, waitingKey := range waitingBlsKeys {
+		assert.Equal(t, waitingKey, eei.output[i*3])
+	}
+}
+
+func TestStakingSc_fixWaitingListQueueSize(t *testing.T) {
+	t.Parallel()
+
+	t.Run("inactive fix should error", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		alterWaitingListLength(t, eei, marshalizer)
+		sc.flagCorrectFirstQueued.Unset()
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.UserError, retCode)
+		assert.Equal(t, "invalid method to call", eei.returnMessage)
+	})
+	t.Run("provided value should error", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		alterWaitingListLength(t, eei, marshalizer)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(1)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.UserError, retCode)
+		assert.Equal(t, vm.TransactionValueMustBeZero, eei.returnMessage)
+	})
+	t.Run("not enough gas should error", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		alterWaitingListLength(t, eei, marshalizer)
+		eei.SetGasProvided(499999999)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.OutOfGas, retCode)
+		assert.Equal(t, "insufficient gas", eei.returnMessage)
+	})
+	t.Run("should repair", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		alterWaitingListLength(t, eei, marshalizer)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, waitingBlsKeys[len(waitingBlsKeys)-1], waitingListHead.LastKey[2:])
+		assert.Equal(t, waitingBlsKeys[0], waitingListHead.FirstKey[2:])
+	})
+	t.Run("should not alter if repair is not needed", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+			[]byte("waitingBlsKey3"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, waitingBlsKeys[len(waitingBlsKeys)-1], waitingListHead.LastKey[2:])
+		assert.Equal(t, waitingBlsKeys[0], waitingListHead.FirstKey[2:])
+	})
+	t.Run("should not alter if the waiting list size is 1", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+		}
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, waitingBlsKeys[len(waitingBlsKeys)-1], waitingListHead.LastKey[2:])
+		assert.Equal(t, waitingBlsKeys[0], waitingListHead.FirstKey[2:])
+	})
+	t.Run("should not alter if the waiting list size is 0", func(t *testing.T) {
+		waitingBlsKeys := make([][]byte, 0)
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Nil(t, waitingListHead.LastKey)
+		assert.Nil(t, waitingListHead.FirstKey)
+	})
+	t.Run("should not alter lastJailedKey if exists", func(t *testing.T) {
+		lastJailedBLSString := "lastJailedKey1"
+		waitingBlsKeys := [][]byte{
+			[]byte(lastJailedBLSString),
+			[]byte("waitingBlsKey2"),
+		}
+		lastJailedKey := []byte(fmt.Sprintf("w_%s", lastJailedBLSString))
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysListWithLastJailed(t, waitingBlsKeys, lastJailedKey)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		beforeBuff := eei.GetStorage([]byte(waitingListHeadKey))
+		beforeWaitingListHead := &WaitingList{}
+		beforeErr := marshalizer.Unmarshal(beforeWaitingListHead, beforeBuff)
+		require.Nil(t, beforeErr)
+		assert.Equal(t, lastJailedKey, beforeWaitingListHead.LastJailedKey)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, lastJailedKey, waitingListHead.LastJailedKey)
+	})
+	t.Run("should alter lastJailedKey if NOT exists", func(t *testing.T) {
+		waitingBlsKeys := [][]byte{
+			[]byte("waitingBlsKey1"),
+			[]byte("waitingBlsKey2"),
+		}
+		lastJailedKey := []byte("lastJailedKey")
+		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysListWithLastJailed(t, waitingBlsKeys, lastJailedKey)
+		eei.SetGasProvided(500000000)
+
+		arguments := CreateVmContractCallInput()
+		arguments.Function = "fixWaitingListQueueSize"
+		arguments.CallerAddr = []byte("caller")
+		arguments.Arguments = make([][]byte, 0)
+		arguments.CallValue = big.NewInt(0)
+
+		beforeBuff := eei.GetStorage([]byte(waitingListHeadKey))
+		beforeWaitingListHead := &WaitingList{}
+		beforeErr := marshalizer.Unmarshal(beforeWaitingListHead, beforeBuff)
+		require.Nil(t, beforeErr)
+		assert.Equal(t, lastJailedKey, beforeWaitingListHead.LastJailedKey)
+
+		retCode := sc.Execute(arguments)
+		assert.Equal(t, vmcommon.Ok, retCode)
+
+		buff := eei.GetStorage([]byte(waitingListHeadKey))
+		waitingListHead := &WaitingList{}
+		err := marshalizer.Unmarshal(waitingListHead, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, len(waitingBlsKeys), int(waitingListHead.Length))
+		assert.Equal(t, 0, len(waitingListHead.LastJailedKey))
+	})
+}
+
+func makeWrongConfigForWaitingBlsKeysList(t *testing.T, waitingBlsKeys [][]byte) (*stakingSC, *vmContext, marshal.Marshalizer, []byte) {
+	return makeWrongConfigForWaitingBlsKeysListWithLastJailed(t, waitingBlsKeys, nil)
+}
+
+func makeWrongConfigForWaitingBlsKeysListWithLastJailed(t *testing.T, waitingBlsKeys [][]byte, lastJailedKey []byte) (*stakingSC, *vmContext, marshal.Marshalizer, []byte) {
+	blockChainHook := &mock.BlockChainHookStub{}
+	marshalizer := &marshal.JsonMarshalizer{}
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	m := make(map[string]interface{})
+	waitingListHead := &WaitingList{nil, nil, 0, lastJailedKey}
+	m[waitingListHeadKey] = waitingListHead
+
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		obj, found := m[string(index)]
+		if found {
+			return marshalizer.Marshal(obj)
+		}
+
+		return nil, nil
+	}
+
+	args := createMockStakingScArguments()
+	args.Marshalizer = marshalizer
+	args.Eei = eei
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.GasCost.MetaChainSystemSCsCost.FixWaitingListSize = 500000000
+	sc, _ := NewStakingSmartContract(args)
+	sc.flagCorrectFirstQueued.Set()
+	stakerAddress := []byte("stakerAddr")
+
+	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("eligibleBlsKey1"))
+	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("eligibleBlsKey2"))
+	for _, waitingKey := range waitingBlsKeys {
+		doStake(t, sc, stakingAccessAddress, stakerAddress, waitingKey)
+	}
+
+	eei.output = make([][]byte, 0)
+	eei.returnMessage = ""
+
+	return sc, eei, marshalizer, stakingAccessAddress
+}
+
+func alterWaitingListLength(t *testing.T, eei *vmContext, marshalizer marshal.Marshalizer) {
+	// manually alter the length
+	buff := eei.GetStorage([]byte(waitingListHeadKey))
+	existingWaitingListHead := &WaitingList{}
+	err := marshalizer.Unmarshal(existingWaitingListHead, buff)
+	require.Nil(t, err)
+	existingWaitingListHead.Length++
+	buff, err = marshalizer.Marshal(existingWaitingListHead)
+	require.Nil(t, err)
+	eei.SetStorage([]byte(waitingListHeadKey), buff)
 }
 
 func doUnStakeAtEndOfEpoch(t *testing.T, sc *stakingSC, blsKey []byte, expectedReturnCode vmcommon.ReturnCode) {
@@ -2315,4 +3011,118 @@ func checkIsStaked(t *testing.T, sc *stakingSC, callerAddr, stakerPubKey []byte,
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, expectedCode, retCode)
+}
+
+func TestStakingSc_fixMissingNodeOnQueue(t *testing.T) {
+	t.Parallel()
+
+	waitingBlsKeys := [][]byte{
+		[]byte("waitingBlsKey1"),
+		[]byte("waitingBlsKey2"),
+		[]byte("waitingBlsKey3"),
+	}
+	sc, eei, _, stakingAccessAddress := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "addMissingNodeToQueue"
+	arguments.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	arguments.Arguments = make([][]byte, 0)
+
+	eei.returnMessage = ""
+	sc.flagCorrectFirstQueued.Unset()
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, "invalid method to call", eei.returnMessage)
+
+	eei.returnMessage = ""
+	sc.flagCorrectFirstQueued.Set()
+	arguments.CallValue = big.NewInt(10)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, vm.TransactionValueMustBeZero, eei.returnMessage)
+
+	eei.gasRemaining = 1
+	sc.gasCost.MetaChainSystemSCsCost.FixWaitingListSize = 50
+	eei.returnMessage = ""
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.OutOfGas, retCode)
+	assert.Equal(t, "insufficient gas", eei.returnMessage)
+
+	eei.gasRemaining = 50
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, "invalid number of arguments", eei.returnMessage)
+
+	eei.gasRemaining = 50
+	eei.returnMessage = ""
+	arguments.Arguments = append(arguments.Arguments, []byte("waitingBlsKey4"))
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, "element was not found", eei.returnMessage)
+
+	doStake(t, sc, stakingAccessAddress, arguments.CallerAddr, []byte("waitingBlsKey4"))
+
+	eei.gasRemaining = 50
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, "key is in queue, not missing", eei.returnMessage)
+}
+
+func TestStakingSc_fixMissingNodeAddOneNodeOnly(t *testing.T) {
+	t.Parallel()
+
+	sc, eei, _, _ := makeWrongConfigForWaitingBlsKeysList(t, nil)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "addMissingNodeToQueue"
+	arguments.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	arguments.Arguments = make([][]byte, 0)
+
+	blsKey := []byte("waitingBlsKey1")
+	eei.returnMessage = ""
+	arguments.Arguments = append(arguments.Arguments, blsKey)
+	eei.gasRemaining = 50
+
+	sc.gasCost.MetaChainSystemSCsCost.FixWaitingListSize = 50
+	_ = sc.saveWaitingListElement(createWaitingListKey(blsKey), &ElementInList{BLSPublicKey: blsKey})
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	waitingListData, _ := sc.getFirstElementsFromWaitingList(50)
+	assert.Equal(t, len(waitingListData.blsKeys), 1)
+	assert.Equal(t, waitingListData.blsKeys[0], blsKey)
+}
+
+func TestStakingSc_fixMissingNodeAddAsLast(t *testing.T) {
+	t.Parallel()
+
+	waitingBlsKeys := [][]byte{
+		[]byte("waitingBlsKey1"),
+		[]byte("waitingBlsKey2"),
+		[]byte("waitingBlsKey3"),
+	}
+	sc, eei, _, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
+	sc.gasCost.MetaChainSystemSCsCost.FixWaitingListSize = 50
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "addMissingNodeToQueue"
+	arguments.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	arguments.Arguments = make([][]byte, 0)
+
+	blsKey := []byte("waitingBlsKey4")
+	eei.returnMessage = ""
+	arguments.Arguments = append(arguments.Arguments, blsKey)
+	eei.gasRemaining = 50
+	_ = sc.saveWaitingListElement(createWaitingListKey(blsKey), &ElementInList{BLSPublicKey: blsKey})
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	waitingListData, _ := sc.getFirstElementsFromWaitingList(50)
+	assert.Equal(t, len(waitingListData.blsKeys), 4)
+	assert.Equal(t, waitingListData.blsKeys[3], blsKey)
 }

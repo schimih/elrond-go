@@ -14,15 +14,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	transactionData "github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/state"
 	systemVm "github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,8 +32,9 @@ var NewBalanceBig = arwen.NewBalanceBig
 var RequireAlmostEquals = arwen.RequireAlmostEquals
 
 func TestDelegation_Upgrade(t *testing.T) {
+	// TODO reinstate test after Arwen pointer fix
 	if testing.Short() {
-		t.Skip("skip for short")
+		t.Skip("cannot run with -race -short; requires Arwen fix")
 	}
 
 	context := arwen.SetupTestContext(t)
@@ -63,6 +65,11 @@ func TestDelegation_Upgrade(t *testing.T) {
 }
 
 func TestDelegation_Claims(t *testing.T) {
+	// TODO reinstate test after Arwen pointer fix
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires Arwen fix")
+	}
+
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
 
@@ -212,7 +219,7 @@ func TestDelegationProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", 2, 1)
 }
 
 func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
@@ -220,7 +227,7 @@ func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", 2, 1)
 }
 
 func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
@@ -228,10 +235,10 @@ func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", true, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", 100, 1)
 }
 
-func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool, txPerBenchmark int, numRun int) {
+func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark int, numRun int) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
@@ -240,13 +247,12 @@ func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool
 
 	scCode := arwen.GetSCCode(fileName)
 	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		outOfProcess,
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)

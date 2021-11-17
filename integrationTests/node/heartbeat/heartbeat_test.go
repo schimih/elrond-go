@@ -7,20 +7,22 @@ import (
 	"time"
 
 	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -135,10 +137,8 @@ func prepareNodes(
 			senders = append(senders, sender)
 			pks = append(pks, pk)
 		} else {
-			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, monitor)
+			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, "test", monitor)
 		}
-
-		_ = nodes[i].Bootstrap()
 	}
 
 	for i := 0; i < len(nodes)-1; i++ {
@@ -217,7 +217,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		Topic:                topic,
 		ShardCoordinator:     &sharding.OneShardCoordinator{},
 		PeerTypeProvider:     &mock.PeerTypeProviderStub{},
-		StatusHandler:        &mock.AppStatusHandlerStub{},
+		StatusHandler:        &statusHandlerMock.AppStatusHandlerStub{},
 		VersionNumber:        version,
 		NodeDisplayName:      nodeName,
 		HardforkTrigger:      &mock.HardforkTriggerStub{},
@@ -238,10 +238,8 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 	mp, _ := process.NewMessageProcessor(
 		&mock2.PeerSignatureHandler{Signer: singlesigner, KeyGen: keyGen},
 		marshalizer,
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
-			UpdatePeerIdShardIdCalled:   func(pid core.PeerID, shardId uint32) {},
-		})
+		&p2pmocks.NetworkShardingCollectorStub{},
+	)
 
 	argMonitor := process.ArgHeartbeatMonitor{
 		Marshalizer:                 integrationTests.TestMarshalizer,
@@ -277,6 +275,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
+		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
 	monitor, _ := process.NewMonitor(argMonitor)

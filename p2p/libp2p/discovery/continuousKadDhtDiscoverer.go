@@ -2,12 +2,13 @@ package discovery
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -23,14 +24,15 @@ const kadDhtName = "kad-dht discovery"
 
 // ArgKadDht represents the kad-dht config argument DTO
 type ArgKadDht struct {
-	Context              context.Context
-	Host                 ConnectableHost
-	PeersRefreshInterval time.Duration
-	ProtocolID           string
-	InitialPeersList     []string
-	BucketSize           uint32
-	RoutingTableRefresh  time.Duration
-	KddSharder           p2p.CommonSharder
+	Context                     context.Context
+	Host                        ConnectableHost
+	PeersRefreshInterval        time.Duration
+	SeedersReconnectionInterval time.Duration
+	ProtocolID                  string
+	InitialPeersList            []string
+	BucketSize                  uint32
+	RoutingTableRefresh         time.Duration
+	KddSharder                  p2p.Sharder
 }
 
 // ContinuousKadDhtDiscoverer is the kad-dht discovery type implementation
@@ -54,6 +56,26 @@ type ContinuousKadDhtDiscoverer struct {
 // NewContinuousKadDhtDiscoverer creates a new kad-dht discovery type implementation
 // initialPeersList can be nil or empty, no initial connection will be attempted, a warning message will appear
 func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, error) {
+	sharder, err := prepareArguments(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	sharder.SetSeeders(arg.InitialPeersList)
+
+	return &ContinuousKadDhtDiscoverer{
+		context:              arg.Context,
+		host:                 arg.Host,
+		sharder:              sharder,
+		peersRefreshInterval: arg.PeersRefreshInterval,
+		protocolID:           arg.ProtocolID,
+		initialPeersList:     arg.InitialPeersList,
+		bucketSize:           arg.BucketSize,
+		routingTableRefresh:  arg.RoutingTableRefresh,
+	}, nil
+}
+
+func prepareArguments(arg ArgKadDht) (Sharder, error) {
 	if check.IfNilReflect(arg.Context) {
 		return nil, p2p.ErrNilContext
 	}
@@ -79,16 +101,7 @@ func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, 
 			"No initial connection will be done")
 	}
 
-	return &ContinuousKadDhtDiscoverer{
-		context:              arg.Context,
-		host:                 arg.Host,
-		sharder:              sharder,
-		peersRefreshInterval: arg.PeersRefreshInterval,
-		protocolID:           arg.ProtocolID,
-		initialPeersList:     arg.InitialPeersList,
-		bucketSize:           arg.BucketSize,
-		routingTableRefresh:  arg.RoutingTableRefresh,
-	}, nil
+	return sharder, nil
 }
 
 // Bootstrap will start the bootstrapping new peers process
@@ -156,8 +169,13 @@ func (ckdd *ContinuousKadDhtDiscoverer) connectToInitialAndBootstrap(ctx context
 		ckdd.initialPeersList,
 	)
 
+	// TODO: needs refactor
 	go func() {
-		<-chanStartBootstrap
+		select {
+		case <-chanStartBootstrap:
+		case <-ctx.Done():
+			return
+		}
 		ckdd.bootstrap(ctx)
 	}()
 }
@@ -172,7 +190,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) bootstrap(ctx context.Context) {
 		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == kadDht.Bootstrap(ckdd.context)
 		if shouldReconnect {
 			log.Debug("pausing the p2p bootstrapping process")
-			<-ckdd.ReconnectToNetwork()
+			ckdd.ReconnectToNetwork(ctx)
 			log.Debug("resuming the p2p bootstrapping process")
 		}
 
@@ -214,15 +232,13 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 		initialPeer := initialPeersList[startIndex]
 		err := ckdd.host.ConnectToPeer(ckdd.context, initialPeer)
 		if err != nil {
-			log.Debug("error connecting to seeder",
-				"seeder", initialPeer,
-				"error", err.Error(),
-			)
+			printConnectionErrorToSeeder(initialPeer, err)
 			startIndex++
 			startIndex = startIndex % len(initialPeersList)
 			select {
 			case <-ckdd.context.Done():
-				break
+				log.Debug("context done in ContinuousKadDhtDiscoverer")
+				return
 			case <-time.After(intervalBetweenAttempts):
 				continue
 			}
@@ -235,14 +251,34 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 	chanDone <- struct{}{}
 }
 
+func printConnectionErrorToSeeder(peer string, err error) {
+	if errors.Is(err, p2p.ErrUnwantedPeer) {
+		log.Trace("tryConnectToSeeder: unwanted peer",
+			"seeder", peer,
+			"error", err.Error(),
+		)
+
+		return
+	}
+
+	log.Debug("error connecting to seeder",
+		"seeder", peer,
+		"error", err.Error(),
+	)
+}
+
 // Name returns the name of the kad dht peer discovery implementation
 func (ckdd *ContinuousKadDhtDiscoverer) Name() string {
 	return kadDhtName
 }
 
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
-func (ckdd *ContinuousKadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
-	return ckdd.connectToOnePeerFromInitialPeersList(ckdd.peersRefreshInterval, ckdd.initialPeersList)
+func (ckdd *ContinuousKadDhtDiscoverer) ReconnectToNetwork(ctx context.Context) {
+	select {
+	case <-ckdd.connectToOnePeerFromInitialPeersList(ckdd.peersRefreshInterval, ckdd.initialPeersList):
+	case <-ctx.Done():
+		return
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

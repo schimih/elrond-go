@@ -7,6 +7,7 @@ import (
 
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -39,17 +40,12 @@ func TestTomlParser(t *testing.T) {
 	consensusType := "bls"
 
 	vmConfig := VirtualMachineConfig{
-		OutOfProcessEnabled: false,
-		OutOfProcessConfig: VirtualMachineOutOfProcessConfig{
-			LogsMarshalizer:     "json",
-			MessagesMarshalizer: "json",
-			MaxLoopTime:         1000,
-		},
 		ArwenVersions: []ArwenVersionByEpoch{
-			{StartEpoch: 12, Version: "v0.3", OutOfProcessSupported: true},
-			{StartEpoch: 88, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 12, Version: "v0.3"},
+			{StartEpoch: 88, Version: "v1.2"},
 		},
 	}
+
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
@@ -82,8 +78,12 @@ func TestTomlParser(t *testing.T) {
 				Type:     accountsStorageTypeDB,
 			},
 			Bloom: BloomFilterConfig{
-				Size:     173,
-				HashFunc: []string{accountsStorageBlomHash1, accountsStorageBlomHash2, accountsStorageBlomHash3},
+				Size: 173,
+				HashFunc: []string{
+					accountsStorageBlomHash1,
+					accountsStorageBlomHash2,
+					accountsStorageBlomHash3,
+				},
 			},
 		},
 		Hasher: TypeConfig{
@@ -92,7 +92,7 @@ func TestTomlParser(t *testing.T) {
 		MultisigHasher: TypeConfig{
 			Type: multiSigHasherType,
 		},
-		Consensus: TypeConfig{
+		Consensus: ConsensusConfig{
 			Type: consensusType,
 		},
 		VirtualMachine: VirtualMachineServicesConfig{
@@ -102,8 +102,28 @@ func TestTomlParser(t *testing.T) {
 				VirtualMachineConfig: vmConfig,
 			},
 		},
+		Debug: DebugConfig{
+			InterceptorResolver: InterceptorResolverDebugConfig{
+				Enabled:                    true,
+				EnablePrint:                true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+				NumRequestsThreshold:       9,
+				NumResolveFailureThreshold: 3,
+				DebugLineExpiration:        10,
+			},
+			Antiflood: AntifloodDebugConfig{
+				Enabled:                    true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+			},
+			ShuffleOut: ShuffleOutDebugConfig{
+				CallGCWhenShuffleOut:    true,
+				ExtraPrintsOnShuffleOut: true,
+				DoProfileOnShuffleOut:   true,
+			},
+		},
 	}
-	cfgExpected.VirtualMachine.Querying.OutOfProcessEnabled = true
 	testString := `
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -149,34 +169,42 @@ func TestTomlParser(t *testing.T) {
 
 [VirtualMachine]
     [VirtualMachine.Execution]
-        OutOfProcessEnabled = false
         ArwenVersions = [
-            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
-            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
         ]
-        [VirtualMachine.Execution.OutOfProcessConfig]
-            LogsMarshalizer = "json"
-            MessagesMarshalizer = "json"
-            MaxLoopTime = 1000
+
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
-        OutOfProcessEnabled = true
         ArwenVersions = [
-            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
-            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
         ]
-        [VirtualMachine.Querying.OutOfProcessConfig]
-            LogsMarshalizer = "json"
-            MessagesMarshalizer = "json"
-            MaxLoopTime = 1000
 
+[Debug]
+    [Debug.InterceptorResolver]
+        Enabled = true
+        CacheSize = 10000
+        EnablePrint	= true
+        IntervalAutoPrintInSeconds = 20
+        NumRequestsThreshold = 9
+        NumResolveFailureThreshold = 3
+        DebugLineExpiration = 10
+    [Debug.Antiflood]
+        Enabled = true
+        CacheSize = 10000
+        IntervalAutoPrintInSeconds = 20
+    [Debug.ShuffleOut]
+        CallGCWhenShuffleOut = true
+        ExtraPrintsOnShuffleOut = true
+        DoProfileOnShuffleOut = true
 `
 	cfg := Config{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
-	assert.Nil(t, err)
-	assert.Equal(t, cfgExpected, cfg)
+	require.Nil(t, err)
+	require.Equal(t, cfgExpected, cfg)
 }
 
 func TestTomlEconomicsParser(t *testing.T) {
@@ -215,9 +243,13 @@ func TestTomlEconomicsParser(t *testing.T) {
 			},
 		},
 		FeeSettings: FeeSettings{
-			MaxGasLimitPerBlock: maxGasLimitPerBlock,
-			MinGasPrice:         minGasPrice,
-			MinGasLimit:         minGasLimit,
+			GasLimitSettings: []GasLimitSetting{
+				{
+					MaxGasLimitPerBlock: maxGasLimitPerBlock,
+					MinGasLimit:         minGasLimit,
+				},
+			},
+			MinGasPrice: minGasPrice,
 		},
 	}
 
@@ -240,11 +272,9 @@ func TestTomlEconomicsParser(t *testing.T) {
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
+	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MinGasLimit = "` + minGasLimit + `"}] 
     MinGasPrice = "` + minGasPrice + `"
-    MinGasLimit = "` + minGasLimit + `"
 `
-
 	cfg := EconomicsConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
@@ -258,6 +288,8 @@ func TestTomlPreferencesParser(t *testing.T) {
 	destinationShardAsObs := "3"
 	identity := "test-identity"
 	redundancyLevel := int64(0)
+	prefPubKey0 := "preferred pub key 0"
+	prefPubKey1 := "preferred pub key 1"
 
 	cfgPreferencesExpected := Preferences{
 		Preferences: PreferencesConfig{
@@ -265,6 +297,7 @@ func TestTomlPreferencesParser(t *testing.T) {
 			DestinationShardAsObserver: destinationShardAsObs,
 			Identity:                   identity,
 			RedundancyLevel:            redundancyLevel,
+			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
 		},
 	}
 
@@ -274,6 +307,10 @@ func TestTomlPreferencesParser(t *testing.T) {
 	DestinationShardAsObserver = "` + destinationShardAsObs + `"
 	Identity = "` + identity + `"
 	RedundancyLevel = ` + fmt.Sprintf("%d", redundancyLevel) + `
+	PreferredConnections = [
+		"` + prefPubKey0 + `",
+		"` + prefPubKey1 + `"
+	]
 `
 	cfg := Preferences{}
 
@@ -320,7 +357,13 @@ func TestAPIRoutesToml(t *testing.T) {
 	package1 := "testPackage1"
 	route2 := "testRoute2"
 
+	loggingThreshold := 10
+
 	expectedCfg := ApiRoutesConfig{
+		Logging: ApiLoggingConfig{
+			LoggingEnabled:          true,
+			ThresholdInMicroSeconds: loggingThreshold,
+		},
 		APIPackages: map[string]APIPackageConfig{
 			package0: {
 				Routes: []RouteConfig{
@@ -337,6 +380,10 @@ func TestAPIRoutesToml(t *testing.T) {
 	}
 
 	testString := `
+[Logging]
+    LoggingEnabled = true
+    ThresholdInMicroSeconds = 10
+
      # API routes configuration
 [APIPackages]
 
@@ -357,6 +404,302 @@ func TestAPIRoutesToml(t *testing.T) {
  `
 
 	cfg := ApiRoutesConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
+}
+
+func TestP2pConfig(t *testing.T) {
+	initialPeersList := "/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
+	protocolID := "test protocol id"
+	shardingType := "ListSharder"
+	seed := "test seed"
+	port := "37373-38383"
+
+	testString := `
+#P2P config file
+[Node]
+    Port = "` + port + `"
+    Seed = "` + seed + `"
+    ThresholdMinConnectedPeers = 0
+
+[KadDhtPeerDiscovery]
+    Enabled = false
+    Type = ""
+    RefreshIntervalInSec = 0
+    ProtocolID = "` + protocolID + `"
+    InitialPeerList = ["` + initialPeersList + `"]
+
+    #kademlia's routing table bucket size
+    BucketSize = 0
+
+    #RoutingTableRefreshIntervalInSec defines how many seconds should pass between 2 kad routing table auto refresh calls
+    RoutingTableRefreshIntervalInSec = 0
+
+[Sharding]
+    # The targeted number of peer connections
+    TargetPeerCount = 0
+    MaxIntraShardValidators = 0
+    MaxCrossShardValidators = 0
+    MaxIntraShardObservers = 0
+    MaxCrossShardObservers = 0
+    MaxSeeders = 0
+    Type = "` + shardingType + `"
+    [AdditionalConnections]
+        MaxFullHistoryObservers = 0`
+
+	expectedCfg := P2PConfig{
+		Node: NodeConfig{
+			Port: port,
+			Seed: seed,
+		},
+		KadDhtPeerDiscovery: KadDhtPeerDiscoveryConfig{
+			ProtocolID:      protocolID,
+			InitialPeerList: []string{initialPeersList},
+		},
+		Sharding: ShardingConfig{
+			Type: shardingType,
+		},
+	}
+	cfg := P2PConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
+}
+
+func TestEnableEpochConfig(t *testing.T) {
+	testString := `
+[EnableEpochs]
+    # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
+    SCDeployEnableEpoch = 1
+
+    # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
+    BuiltInFunctionsEnableEpoch = 2
+
+    # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
+    RelayedTransactionsEnableEpoch = 3
+
+    # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
+    PenalizedTooMuchGasEnableEpoch = 4
+
+    # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
+    SwitchJailWaitingEnableEpoch = 5
+
+    # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
+    BelowSignedThresholdEnableEpoch = 6
+
+    # SwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
+    # also (minimum) hysteresis nodes for the minimum number of nodes
+    SwitchHysteresisForMinNodesEnableEpoch = 7
+
+    # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
+    # signed with the hash of transaction
+    TransactionSignedWithTxHashEnableEpoch = 8
+
+    # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
+    MetaProtectionEnableEpoch = 9
+
+    # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+    AheadOfTimeGasUsageEnableEpoch = 10
+
+    # GasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
+    GasPriceModifierEnableEpoch = 11
+
+    # RepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
+    RepairCallbackEnableEpoch = 12
+
+    # BlockGasAndFeesReCheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
+    BlockGasAndFeesReCheckEnableEpoch = 13
+
+    # BalanceWaitingListsEnableEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
+    BalanceWaitingListsEnableEpoch = 14
+
+    # ReturnDataToLastTransferEnableEpoch represents the epoch when returned data is added to last output transfer for callbacks
+    ReturnDataToLastTransferEnableEpoch = 15
+
+    # SenderInOutTransferEnableEpoch represents the epoch when the feature of having different senders in output transfer is enabled
+    SenderInOutTransferEnableEpoch = 16
+
+    # StakeEnableEpoch represents the epoch when staking is enabled
+    StakeEnableEpoch = 17
+
+    # StakingV2EnableEpoch represents the epoch when staking v2 is enabled
+    StakingV2EnableEpoch = 18
+
+    DoubleKeyProtectionEnableEpoch = 19
+
+    # ESDTEnableEpoch represents the epoch when ESDT is enabled
+    ESDTEnableEpoch = 20
+
+    # GovernanceEnableEpoch represents the epoch when governance is enabled
+    GovernanceEnableEpoch = 21
+
+    # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
+    # epoch should not be 0
+    DelegationManagerEnableEpoch = 22
+
+    # DelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled
+    # epoch should not be 0
+    DelegationSmartContractEnableEpoch = 23
+
+    # CorrectLastUnjailedEnableEpoch represents the epoch when the fix regaring the last unjailed node should apply
+    CorrectLastUnjailedEnableEpoch = 24
+
+    # RelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions V2 will be enabled
+    RelayedTransactionsV2EnableEpoch = 25
+
+    # UnbondTokensV2EnableEpoch represents the epoch when the new implementation of the unbond tokens function is available
+    UnbondTokensV2EnableEpoch = 26
+
+    # SaveJailedAlwaysEnableEpoch represents the epoch when saving jailed status at end of epoch will happen in all cases
+    SaveJailedAlwaysEnableEpoch = 27
+
+    # ReDelegateBelowMinCheckEnableEpoch represents the epoch when the check for the re-delegated value will be enabled
+    ReDelegateBelowMinCheckEnableEpoch = 28
+
+    # ValidatorToDelegationEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
+    ValidatorToDelegationEnableEpoch = 29
+
+    # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
+    WaitingListFixEnableEpoch = 30
+
+    # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
+    # is enabled. The fix is done by adding an extra increment.
+    IncrementSCRNonceInMultiTransferEnableEpoch = 31
+
+    # ESDTMultiTransferEnableEpoch represents the epoch when esdt multitransfer built in function is enabled
+    ESDTMultiTransferEnableEpoch = 32
+
+    # GlobalMintBurnDisableEpoch represents the epoch when the global mint and burn functions are disabled
+    GlobalMintBurnDisableEpoch = 33
+
+    # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
+    ESDTTransferRoleEnableEpoch = 34
+
+    # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
+    BuiltInFunctionOnMetaEnableEpoch = 35
+
+    # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
+    ComputeRewardCheckpointEnableEpoch = 36
+
+    # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
+    SCRSizeInvariantCheckEnableEpoch = 37
+
+    # BackwardCompSaveKeyValueEnableEpoch represents the epoch when backward compatibility save key value is enabled
+    BackwardCompSaveKeyValueEnableEpoch = 38
+
+    # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
+    ESDTNFTCreateOnMultiShardEnableEpoch = 39
+
+    # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
+    MetaESDTSetEnableEpoch = 40
+
+    # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
+    AddTokensToDelegationEnableEpoch = 41
+
+    # MultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer on callback fix is enabled
+    MultiESDTTransferFixOnCallBackOnEnableEpoch = 42
+
+    # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
+    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 43
+
+    # FixOOGReturnCodeEnableEpoch represents the epoch when the backward compatibility returning out of gas error is enabled
+    FixOOGReturnCodeEnableEpoch = 44
+
+    # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
+    RemoveNonUpdatedStorageEnableEpoch = 45
+
+    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
+    MaxNodesChangeEnableEpoch = [
+        { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
+        { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
+    ]
+
+[GasSchedule]
+    GasScheduleByEpochs = [
+        { StartEpoch = 46, FileName = "gasScheduleV1.toml" },
+        { StartEpoch = 47, FileName = "gasScheduleV3.toml" },
+    ]
+`
+
+	expectedCfg := EpochConfig{
+		EnableEpochs: EnableEpochs{
+			SCDeployEnableEpoch:                    1,
+			BuiltInFunctionsEnableEpoch:            2,
+			RelayedTransactionsEnableEpoch:         3,
+			PenalizedTooMuchGasEnableEpoch:         4,
+			SwitchJailWaitingEnableEpoch:           5,
+			SwitchHysteresisForMinNodesEnableEpoch: 7,
+			BelowSignedThresholdEnableEpoch:        6,
+			TransactionSignedWithTxHashEnableEpoch: 8,
+			MetaProtectionEnableEpoch:              9,
+			AheadOfTimeGasUsageEnableEpoch:         10,
+			GasPriceModifierEnableEpoch:            11,
+			RepairCallbackEnableEpoch:              12,
+			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
+				{
+					EpochEnable:            44,
+					MaxNumNodes:            2169,
+					NodesToShufflePerShard: 80,
+				},
+				{
+					EpochEnable:            45,
+					MaxNumNodes:            3200,
+					NodesToShufflePerShard: 80,
+				},
+			},
+			BlockGasAndFeesReCheckEnableEpoch:           13,
+			StakingV2EnableEpoch:                        18,
+			StakeEnableEpoch:                            17,
+			DoubleKeyProtectionEnableEpoch:              19,
+			ESDTEnableEpoch:                             20,
+			GovernanceEnableEpoch:                       21,
+			DelegationManagerEnableEpoch:                22,
+			DelegationSmartContractEnableEpoch:          23,
+			CorrectLastUnjailedEnableEpoch:              24,
+			BalanceWaitingListsEnableEpoch:              14,
+			ReturnDataToLastTransferEnableEpoch:         15,
+			SenderInOutTransferEnableEpoch:              16,
+			RelayedTransactionsV2EnableEpoch:            25,
+			UnbondTokensV2EnableEpoch:                   26,
+			SaveJailedAlwaysEnableEpoch:                 27,
+			ValidatorToDelegationEnableEpoch:            29,
+			ReDelegateBelowMinCheckEnableEpoch:          28,
+			WaitingListFixEnableEpoch:                   30,
+			IncrementSCRNonceInMultiTransferEnableEpoch: 31,
+			ESDTMultiTransferEnableEpoch:                32,
+			GlobalMintBurnDisableEpoch:                  33,
+			ESDTTransferRoleEnableEpoch:                 34,
+			BuiltInFunctionOnMetaEnableEpoch:            35,
+			ComputeRewardCheckpointEnableEpoch:          36,
+			SCRSizeInvariantCheckEnableEpoch:            37,
+			BackwardCompSaveKeyValueEnableEpoch:         38,
+			ESDTNFTCreateOnMultiShardEnableEpoch:        39,
+			MetaESDTSetEnableEpoch:                      40,
+			AddTokensToDelegationEnableEpoch:            41,
+			MultiESDTTransferFixOnCallBackOnEnableEpoch: 42,
+			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 43,
+			FixOOGReturnCodeEnableEpoch:                 44,
+			RemoveNonUpdatedStorageEnableEpoch:          45,
+		},
+		GasSchedule: GasScheduleConfig{
+			GasScheduleByEpochs: []GasScheduleByEpochs{
+				{
+					StartEpoch: 46,
+					FileName:   "gasScheduleV1.toml",
+				},
+				{
+					StartEpoch: 47,
+					FileName:   "gasScheduleV3.toml",
+				},
+			},
+		},
+	}
+	cfg := EpochConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 

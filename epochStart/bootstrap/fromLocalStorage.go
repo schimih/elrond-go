@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -61,7 +62,7 @@ func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 		return 0, false, err
 	}
 
-	pubKey, err := e.publicKey.ToByteArray()
+	pubKey, err := e.cryptoComponentsHolder.PublicKey().ToByteArray()
 	if err != nil {
 		return 0, false, err
 	}
@@ -103,6 +104,8 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 			NumOfShards: e.baseData.numberOfShards,
 			NodesConfig: e.nodesConfig,
 		}
+		e.setEpochStartMetrics()
+
 		return parameters, nil
 	}
 
@@ -119,6 +122,13 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+
+	defer func() {
+		errClose := e.interceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+		}
+	}()
 
 	e.syncedHeaders, err = e.syncHeadersFrom(e.epochStartMeta)
 	if err != nil {
@@ -137,7 +147,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	err = e.messenger.CreateTopic(common.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -220,7 +230,7 @@ func checkIfValidatorIsInList(
 }
 
 func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, *sharding.NodesCoordinatorRegistry, error) {
-	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.marshalizer, storer)
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.coreComponentsHolder.InternalMarshalizer(), storer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -231,7 +241,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
 	data, err := storer.SearchFirst(ncInternalkey)
 	if err != nil {
 		log.Debug("getLastBootstrapData", "key", ncInternalkey, "error", err)
@@ -256,7 +266,7 @@ func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer
 	}
 
 	metaBlock := &block.MetaBlock{}
-	err = e.marshalizer.Unmarshal(metaBlock, data)
+	err = e.coreComponentsHolder.InternalMarshalizer().Unmarshal(metaBlock, data)
 	if err != nil {
 		return nil, err
 	}

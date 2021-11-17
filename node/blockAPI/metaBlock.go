@@ -4,21 +4,22 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
 type metaAPIBlockProcessor struct {
-	*baseAPIBockProcessor
+	*baseAPIBlockProcessor
 }
 
 // NewMetaApiBlockProcessor will create a new instance of meta api block processor
 func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
+
 	return &metaAPIBlockProcessor{
-		baseAPIBockProcessor: &baseAPIBockProcessor{
+		baseAPIBlockProcessor: &baseAPIBlockProcessor{
 			hasDbLookupExtensions:    hasDbLookupExtensions,
 			selfShardID:              arg.SelfShardID,
 			store:                    arg.Store,
@@ -26,6 +27,7 @@ func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor 
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
 			unmarshalTx:              arg.UnmarshalTx,
+			txStatusComputer:         arg.StatusComputer,
 		},
 	}
 }
@@ -48,7 +50,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*
 	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
 }
 
-// GetBlockByHash will return a shard APIBlock by hash
+// GetBlockByHash will return a meta APIBlock by hash
 func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error) {
 	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
@@ -61,6 +63,16 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*ap
 	}
 
 	return mbp.computeStatusAndPutInBlock(blockAPI, dataRetriever.MetaHdrNonceHashDataUnit)
+}
+
+// GetBlockByRound will return a meta APIBlock by round
+func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	headerHash, blockBytes, err := mbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
 }
 
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {
@@ -100,13 +112,14 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		notarizedBlock := &api.NotarizedBlock{
 			Hash:  hex.EncodeToString(shardData.HeaderHash),
 			Nonce: shardData.Nonce,
+			Round: shardData.Round,
 			Shard: shardData.ShardID,
 		}
 
 		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
-	return &api.Block{
+	metaBlock := &api.Block{
 		Nonce:                  blockHeader.Nonce,
 		Round:                  blockHeader.Round,
 		Epoch:                  blockHeader.Epoch,
@@ -122,5 +135,22 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
 		Timestamp:              time.Duration(blockHeader.GetTimeStamp()),
 		Status:                 BlockStatusOnChain,
-	}, nil
+	}
+
+	if blockHeader.IsStartOfEpochBlock() {
+		epochStartEconomics := blockHeader.EpochStart.Economics
+
+		metaBlock.EpochStartInfo = &api.EpochStartInfo{
+			TotalSupply:                      epochStartEconomics.TotalSupply.String(),
+			TotalToDistribute:                epochStartEconomics.TotalToDistribute.String(),
+			TotalNewlyMinted:                 epochStartEconomics.TotalNewlyMinted.String(),
+			RewardsPerBlock:                  epochStartEconomics.RewardsPerBlock.String(),
+			RewardsForProtocolSustainability: epochStartEconomics.RewardsForProtocolSustainability.String(),
+			NodePrice:                        epochStartEconomics.NodePrice.String(),
+			PrevEpochStartRound:              epochStartEconomics.PrevEpochStartRound,
+			PrevEpochStartHash:               hex.EncodeToString(epochStartEconomics.PrevEpochStartHash),
+		}
+	}
+
+	return metaBlock, nil
 }

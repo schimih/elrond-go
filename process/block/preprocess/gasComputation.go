@@ -3,23 +3,26 @@ package preprocess
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var _ process.GasHandler = (*gasComputation)(nil)
 
 type gasComputation struct {
-	economicsFee   process.FeeHandler
-	txTypeHandler  process.TxTypeHandler
-	gasConsumed    map[string]uint64
-	mutGasConsumed sync.RWMutex
-	gasRefunded    map[string]uint64
-	mutGasRefunded sync.RWMutex
+	economicsFee  process.FeeHandler
+	txTypeHandler process.TxTypeHandler
+	//TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
+	gasConsumed     map[string]uint64
+	mutGasConsumed  sync.RWMutex
+	gasRefunded     map[string]uint64
+	mutGasRefunded  sync.RWMutex
+	gasPenalized    map[string]uint64
+	mutGasPenalized sync.RWMutex
 
 	flagGasComputeV2        atomic.Flag
 	gasComputeV2EnableEpoch uint32
@@ -47,8 +50,10 @@ func NewGasComputation(
 		economicsFee:            economicsFee,
 		gasConsumed:             make(map[string]uint64),
 		gasRefunded:             make(map[string]uint64),
+		gasPenalized:            make(map[string]uint64),
 		gasComputeV2EnableEpoch: gasComputeV2EnableEpoch,
 	}
+	log.Debug("gasComputation: enable epoch for sc deploy", "epoch", g.gasComputeV2EnableEpoch)
 
 	epochNotifier.RegisterNotifyHandler(g)
 
@@ -64,6 +69,10 @@ func (gc *gasComputation) Init() {
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded = make(map[string]uint64)
 	gc.mutGasRefunded.Unlock()
+
+	gc.mutGasPenalized.Lock()
+	gc.gasPenalized = make(map[string]uint64)
+	gc.mutGasPenalized.Unlock()
 }
 
 // SetGasConsumed sets gas consumed for a given hash
@@ -78,6 +87,13 @@ func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded[string(hash)] = gasRefunded
 	gc.mutGasRefunded.Unlock()
+}
+
+// SetGasPenalized sets gas penalized for a given hash
+func (gc *gasComputation) SetGasPenalized(gasPenalized uint64, hash []byte) {
+	gc.mutGasPenalized.Lock()
+	gc.gasPenalized[string(hash)] = gasPenalized
+	gc.mutGasPenalized.Unlock()
 }
 
 // GasConsumed gets gas consumed for a given hash
@@ -97,6 +113,15 @@ func (gc *gasComputation) GasRefunded(hash []byte) uint64 {
 	gc.mutGasRefunded.RUnlock()
 
 	return gasRefunded
+}
+
+// GasPenalized gets gas penalized for a given hash
+func (gc *gasComputation) GasPenalized(hash []byte) uint64 {
+	gc.mutGasPenalized.RLock()
+	gasPenalized := gc.gasPenalized[string(hash)]
+	gc.mutGasPenalized.RUnlock()
+
+	return gasPenalized
 }
 
 // TotalGasConsumed gets the total gas consumed
@@ -124,6 +149,18 @@ func (gc *gasComputation) TotalGasRefunded() uint64 {
 	return totalGasRefunded
 }
 
+// TotalGasPenalized gets the total gas penalized
+func (gc *gasComputation) TotalGasPenalized() uint64 {
+	totalGasPenalized := uint64(0)
+	gc.mutGasPenalized.RLock()
+	for _, gasPenalized := range gc.gasPenalized {
+		totalGasPenalized += gasPenalized
+	}
+	gc.mutGasPenalized.RUnlock()
+
+	return totalGasPenalized
+}
+
 // RemoveGasConsumed removes gas consumed for the given hashes
 func (gc *gasComputation) RemoveGasConsumed(hashes [][]byte) {
 	gc.mutGasConsumed.Lock()
@@ -140,6 +177,15 @@ func (gc *gasComputation) RemoveGasRefunded(hashes [][]byte) {
 		delete(gc.gasRefunded, string(hash))
 	}
 	gc.mutGasRefunded.Unlock()
+}
+
+// RemoveGasPenalized removes gas penalized for the given hashes
+func (gc *gasComputation) RemoveGasPenalized(hashes [][]byte) {
+	gc.mutGasPenalized.Lock()
+	for _, hash := range hashes {
+		delete(gc.gasPenalized, string(hash))
+	}
+	gc.mutGasPenalized.Unlock()
 }
 
 // ComputeGasConsumedByMiniBlock computes gas consumed by the given miniblock in sender and receiver shard
@@ -213,7 +259,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
-	if txTypeSndShard == process.RelayedTx {
+	if gc.isRelayedTx(txTypeSndShard) {
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
@@ -249,8 +295,12 @@ func (gc *gasComputation) computeGasConsumedByTxV1(
 	return moveBalanceConsumption, moveBalanceConsumption, nil
 }
 
+func (gc *gasComputation) isRelayedTx(txType process.TransactionType) bool {
+	return txType == process.RelayedTx || txType == process.RelayedTxV2
+}
+
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (gc *gasComputation) EpochConfirmed(epoch uint32) {
+func (gc *gasComputation) EpochConfirmed(epoch uint32, _ uint64) {
 	gc.flagGasComputeV2.Toggle(epoch >= gc.gasComputeV2EnableEpoch)
 	log.Debug("gasComputation: compute v2", "enabled", gc.flagGasComputeV2.IsSet())
 }

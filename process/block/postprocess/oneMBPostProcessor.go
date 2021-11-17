@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -49,13 +49,13 @@ func NewOneMiniBlockPostProcessor(
 	}
 
 	base := &basePostProcessor{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: coordinator,
-		store:            store,
-		storageType:      storageType,
-		mapTxToResult:    make(map[string][]string),
-		economicsFee:     economicsFee,
+		hasher:             hasher,
+		marshalizer:        marshalizer,
+		shardCoordinator:   coordinator,
+		store:              store,
+		storageType:        storageType,
+		mapProcessedResult: make(map[string]struct{}),
+		economicsFee:       economicsFee,
 	}
 
 	opp := &oneMBPostProcessor{
@@ -158,7 +158,7 @@ func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.Transactio
 		addReceiptShardInfo := &txShardInfo{receiverShardID: selfId, senderShardID: selfId}
 		scrInfo := &txInfo{tx: txs[i], txShardInfo: addReceiptShardInfo}
 		opp.interResultsForBlock[string(txHash)] = scrInfo
-		opp.mapTxToResult[string(txHash)] = append(opp.mapTxToResult[string(txHash)], string(txHash))
+		opp.mapProcessedResult[string(txHash)] = struct{}{}
 	}
 
 	return nil

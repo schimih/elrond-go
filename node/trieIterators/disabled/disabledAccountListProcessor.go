@@ -3,7 +3,7 @@ package disabled
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 )
 
 var errCannotReturnAccountListFromMetachainNode = errors.New("account list cannot be returned by a metachain")

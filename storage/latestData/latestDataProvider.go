@@ -9,13 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -27,13 +26,9 @@ var _ storage.LatestStorageDataProviderHandler = (*latestDataProvider)(nil)
 // ArgsLatestDataProvider holds the arguments needed for creating a latestDataProvider object
 type ArgsLatestDataProvider struct {
 	GeneralConfig         config.Config
-	Marshalizer           marshal.Marshalizer
-	Hasher                hashing.Hasher
 	BootstrapDataProvider factory.BootstrapDataProviderHandler
 	DirectoryReader       storage.DirectoryReaderHandler
-	WorkingDir            string
-	ChainID               string
-	DefaultDBPath         string
+	ParentDir             string
 	DefaultEpochString    string
 	DefaultShardString    string
 }
@@ -47,13 +42,9 @@ type iteratedShardData struct {
 
 type latestDataProvider struct {
 	generalConfig         config.Config
-	marshalizer           marshal.Marshalizer
-	hasher                hashing.Hasher
 	bootstrapDataProvider factory.BootstrapDataProviderHandler
 	directoryReader       storage.DirectoryReaderHandler
-	workingDir            string
-	chainID               string
-	defaultDBPath         string
+	parentDir             string
 	defaultEpochString    string
 	defaultShardString    string
 }
@@ -62,38 +53,55 @@ type latestDataProvider struct {
 func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, error) {
 	return &latestDataProvider{
 		generalConfig:         args.GeneralConfig,
-		marshalizer:           args.Marshalizer,
-		hasher:                args.Hasher,
-		workingDir:            args.WorkingDir,
-		chainID:               args.ChainID,
+		parentDir:             args.ParentDir,
 		directoryReader:       args.DirectoryReader,
 		defaultShardString:    args.DefaultShardString,
 		defaultEpochString:    args.DefaultEpochString,
-		defaultDBPath:         args.DefaultDBPath,
 		bootstrapDataProvider: args.BootstrapDataProvider,
 	}, nil
 }
 
-// Get will return a struct containing the latest data in storage
+// Get will return a struct containing the latest usable data in storage
 func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
-	parentDir, lastEpoch, err := ldp.GetParentDirAndLastEpoch()
-	if err != nil {
-		return storage.LatestDataFromStorage{}, err
-	}
-
-	return ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
+	lastData, _, _, err := ldp.getLastData()
+	return lastData, err
 }
 
-// GetParentDirAndLastEpoch returns the parent directory and last epoch
+// GetParentDirAndLastEpoch returns the parent directory and last usable epoch for the node
 func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error) {
-	parentDir := filepath.Join(
-		ldp.workingDir,
-		ldp.defaultDBPath,
-		ldp.chainID)
+	_, parentDir, lastEpoch, err := ldp.getLastData()
+	return parentDir, lastEpoch, err
+}
 
-	directoriesNames, err := ldp.directoryReader.ListDirectoriesAsString(parentDir)
+func (ldp *latestDataProvider) getLastData() (storage.LatestDataFromStorage, string, uint32, error) {
+	epochDirs, err := ldp.getEpochDirs()
 	if err != nil {
-		return "", 0, err
+		return storage.LatestDataFromStorage{}, "", 0, err
+	}
+
+	for index := range epochDirs {
+		parentDir, lastEpoch, errGetDir := ldp.getParentDirAndLastEpochWithIndex(index)
+		if errGetDir != nil {
+			err = errGetDir
+			continue
+		}
+
+		dataFromStorage, errGetEpoch := ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
+		if errGetEpoch != nil {
+			err = errGetEpoch
+			continue
+		}
+
+		return dataFromStorage, parentDir, lastEpoch, nil
+	}
+
+	return storage.LatestDataFromStorage{}, "", 0, err
+}
+
+func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
+	directoriesNames, err := ldp.directoryReader.ListDirectoriesAsString(ldp.parentDir)
+	if err != nil {
+		return nil, err
 	}
 
 	epochDirs := make([]string, 0, len(directoriesNames))
@@ -105,13 +113,7 @@ func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error
 
 		epochDirs = append(epochDirs, dirName)
 	}
-
-	lastEpoch, err := ldp.GetLastEpochFromDirNames(epochDirs)
-	if err != nil {
-		return "", 0, err
-	}
-
-	return parentDir, lastEpoch, nil
+	return epochDirs, nil
 }
 
 func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string, lastEpoch uint32) (storage.LatestDataFromStorage, error) {
@@ -207,7 +209,7 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 	key []byte,
 	storer storage.Storer,
 ) (uint64, error) {
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
+	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 	data, err := storer.Get(trigInternalKey)
 	if err != nil {
 		return 0, err
@@ -233,7 +235,7 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 }
 
 // GetLastEpochFromDirNames returns the last epoch found in storage directory
-func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string) (uint32, error) {
+func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string, index int) (uint32, error) {
 	if len(epochDirs) == 0 {
 		return 0, nil
 	}
@@ -255,7 +257,7 @@ func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string) (uin
 		return epochsInDirName[i] > epochsInDirName[j]
 	})
 
-	return epochsInDirName[0], nil
+	return epochsInDirName[index], nil
 }
 
 // GetShardsFromDirectory will return names of shards as string from a provided directory
@@ -292,4 +294,18 @@ func (ldp *latestDataProvider) GetShardsFromDirectory(path string) ([]string, er
 // IsInterfaceNil returns true if there is no value under the interface
 func (ldp *latestDataProvider) IsInterfaceNil() bool {
 	return ldp == nil
+}
+
+func (ldp *latestDataProvider) getParentDirAndLastEpochWithIndex(index int) (string, uint32, error) {
+	epochDirs, err := ldp.getEpochDirs()
+	if err != nil {
+		return "", 0, err
+	}
+
+	lastEpoch, err := ldp.GetLastEpochFromDirNames(epochDirs, index)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return ldp.parentDir, lastEpoch, nil
 }

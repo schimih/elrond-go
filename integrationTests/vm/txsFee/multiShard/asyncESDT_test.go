@@ -1,5 +1,7 @@
 // +build !race
 
+// TODO remove build condition above to allow -race -short, after Arwen fix
+
 package multiShard
 
 import (
@@ -7,10 +9,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +41,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	token := []byte("miiutoken")
 	egldBalance := big.NewInt(10000000)
 	esdtBalance := big.NewInt(10000000)
-	utils.CreateAccountWithESDTBalance(t, testContextSender.Accounts, senderAddr, egldBalance, token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContextSender.Accounts, senderAddr, egldBalance, token, 0, esdtBalance)
 
 	// create accounts for owners
 	_, _ = vm.CreateAccount(testContextFirstContract.Accounts, firstContractOwner, 0, egldBalance)
@@ -159,7 +161,7 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	token := []byte("miiutoken")
 	egldBalance := big.NewInt(10000000)
 	esdtBalance := big.NewInt(10000000)
-	utils.CreateAccountWithESDTBalance(t, testContextSender.Accounts, senderAddr, egldBalance, token, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContextSender.Accounts, senderAddr, egldBalance, token, 0, esdtBalance)
 
 	// create accounts for owners
 	_, _ = vm.CreateAccount(testContextFirstContract.Accounts, firstContractOwner, 0, egldBalance)

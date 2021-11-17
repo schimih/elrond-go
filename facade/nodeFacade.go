@@ -6,33 +6,26 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
+	chainData "github.com/ElrondNetwork/elrond-go-core/data"
+	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api"
-	"github.com/ElrondNetwork/elrond-go/api/address"
-	"github.com/ElrondNetwork/elrond-go/api/hardfork"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
-	"github.com/ElrondNetwork/elrond-go/api/node"
-	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
-	"github.com/ElrondNetwork/elrond-go/api/validator"
-	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	apiData "github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // DefaultRestInterface is the default interface the rest API will start on if not specified
@@ -42,19 +35,7 @@ const DefaultRestInterface = "localhost:8080"
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
-var _ = address.FacadeHandler(&nodeFacade{})
-var _ = hardfork.FacadeHandler(&nodeFacade{})
-var _ = node.FacadeHandler(&nodeFacade{})
-var _ = transactionApi.FacadeHandler(&nodeFacade{})
-var _ = validator.FacadeHandler(&nodeFacade{})
-var _ = vmValues.FacadeHandler(&nodeFacade{})
-
 var log = logger.GetOrCreate("facade")
-
-type resetHandler interface {
-	Reset()
-	IsInterfaceNil() bool
-}
 
 // ArgNodeFacade represents the argument for the nodeFacade
 type ArgNodeFacade struct {
@@ -67,6 +48,7 @@ type ArgNodeFacade struct {
 	ApiRoutesConfig        config.ApiRoutesConfig
 	AccountsState          state.AccountsAdapter
 	PeerState              state.AccountsAdapter
+	Blockchain             chainData.ChainHandler
 }
 
 // nodeFacade represents a facade for grouping the functionality for the node
@@ -74,7 +56,6 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	tpsBenchmark           *statistics.TpsBenchmark
 	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
@@ -83,6 +64,7 @@ type nodeFacade struct {
 	restAPIServerDebugMode bool
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
+	blockchain             chainData.ChainHandler
 	ctx                    context.Context
 	cancelFunc             func()
 }
@@ -116,6 +98,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if check.IfNil(arg.PeerState) {
 		return nil, ErrNilPeerState
 	}
+	if check.IfNil(arg.Blockchain) {
+		return nil, ErrNilBlockchain
+	}
 
 	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
 
@@ -130,6 +115,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		endpointsThrottlers:    throttlersMap,
 		accountsState:          arg.AccountsState,
 		peerState:              arg.PeerState,
+		blockchain:             arg.Blockchain,
 	}
 	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
@@ -159,26 +145,6 @@ func (nf *nodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 	nf.syncer = syncer
 }
 
-// SetTpsBenchmark sets the tps benchmark handler
-func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) {
-	nf.tpsBenchmark = tpsBenchmark
-}
-
-// TpsBenchmark returns the tps benchmark handler
-func (nf *nodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
-	return nf.tpsBenchmark
-}
-
-// StartNode starts the underlying node
-func (nf *nodeFacade) StartNode() error {
-	return nf.node.StartConsensus()
-}
-
-// StartBackgroundServices starts all background services needed for the correct functionality of the node
-func (nf *nodeFacade) StartBackgroundServices() {
-	go nf.startRest()
-}
-
 // RestAPIServerDebugMode return true is debug mode for Rest API is enabled
 func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 	return nf.restAPIServerDebugMode
@@ -193,68 +159,6 @@ func (nf *nodeFacade) RestApiInterface() string {
 	}
 
 	return nf.config.RestApiInterface
-}
-
-func (nf *nodeFacade) startRest() {
-	log.Trace("starting REST api server")
-
-	switch nf.RestApiInterface() {
-	case DefaultRestPortOff:
-		log.Debug("web server is off")
-	default:
-		log.Debug("creating web server limiters")
-		limiters, err := nf.CreateMiddlewareLimiters()
-		if err != nil {
-			log.Error("error creating web server limiters",
-				"error", err.Error(),
-			)
-			log.Error("web server is off")
-			return
-		}
-
-		log.Debug("starting web server",
-			"SimultaneousRequests", nf.wsAntifloodConfig.SimultaneousRequests,
-			"SameSourceRequests", nf.wsAntifloodConfig.SameSourceRequests,
-			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
-		)
-
-		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
-		if err != nil {
-			log.Error("could not start webserver",
-				"error", err.Error(),
-			)
-		}
-	}
-}
-
-// CreateMiddlewareLimiters will create the middleware limiters used in web server
-func (nf *nodeFacade) CreateMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
-	sourceLimiter, err := middleware.NewSourceThrottler(nf.wsAntifloodConfig.SameSourceRequests)
-	if err != nil {
-		return nil, err
-	}
-	go nf.sourceLimiterReset(sourceLimiter)
-
-	globalLimiter, err := middleware.NewGlobalThrottler(nf.wsAntifloodConfig.SimultaneousRequests)
-	if err != nil {
-		return nil, err
-	}
-
-	return []api.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
-}
-
-func (nf *nodeFacade) sourceLimiterReset(reset resetHandler) {
-	betweenResetDuration := time.Second * time.Duration(nf.wsAntifloodConfig.SameSourceResetIntervalInSec)
-	for {
-		select {
-		case <-time.After(betweenResetDuration):
-			log.Trace("calling reset on WS source limiter")
-			reset.Reset()
-		case <-nf.ctx.Done():
-			log.Debug("closing nodeFacade.sourceLimiterReset go routine")
-			return
-		}
-	}
 }
 
 // GetBalance gets the current balance for a specified address
@@ -277,6 +181,11 @@ func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*es
 	return nf.node.GetESDTData(address, key, nonce)
 }
 
+// GetESDTsRoles returns all the tokens identifiers and roles for the given address
+func (nf *nodeFacade) GetESDTsRoles(address string) (map[string][]string, error) {
+	return nf.node.GetESDTsRoles(address)
+}
+
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
 func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
 	return nf.node.GetNFTTokenIDsRegisteredByAddress(address)
@@ -295,6 +204,11 @@ func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error
 // GetAllESDTTokens returns all the esdt tokens for a given address
 func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	return nf.node.GetAllESDTTokens(address)
+}
+
+// GetTokenSupply returns the provided token supply
+func (nf *nodeFacade) GetTokenSupply(token string) (string, error) {
+	return nf.node.GetTokenSupply(token)
 }
 
 // GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
@@ -343,7 +257,7 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 }
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
-func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 	return nf.txSimulatorProc.ProcessTx(tx)
 }
 
@@ -357,15 +271,17 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
 }
 
-// GetAccount returns an accountResponse containing information
-// about the account correlated with provided address
-func (nf *nodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
-	return nf.node.GetAccount(address)
-}
+// GetAccount returns a response containing information about the account correlated with provided address
+func (nf *nodeFacade) GetAccount(address string) (apiData.AccountResponse, error) {
+	accountResponse, err := nf.node.GetAccount(address)
+	if err != nil {
+		return apiData.AccountResponse{}, err
+	}
 
-// GetCode returns the code for the given account
-func (nf *nodeFacade) GetCode(account state.UserAccountHandler) []byte {
-	return nf.node.GetCode(account)
+	codeHash := accountResponse.CodeHash
+	code := nf.node.GetCode(codeHash)
+	accountResponse.Code = hex.EncodeToString(code)
+	return accountResponse, nil
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
@@ -466,9 +382,15 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Bloc
 	return nf.node.GetBlockByNonce(nonce, withTxs)
 }
 
+// GetBlockByRound returns the block for a given round
+func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Block, error) {
+	return nf.node.GetBlockByRound(round, withTxs)
+}
+
 // Close will cleanup started go routines
-// TODO use this close method
 func (nf *nodeFacade) Close() error {
+	log.LogIfError(nf.apiResolver.Close())
+
 	nf.cancelFunc()
 
 	return nil
@@ -477,6 +399,35 @@ func (nf *nodeFacade) Close() error {
 // GetNumCheckpointsFromAccountState returns the number of checkpoints of the account state
 func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 	return nf.accountsState.GetNumCheckpoints()
+}
+
+// GetProof returns the Merkle proof for the given address and root hash
+func (nf *nodeFacade) GetProof(rootHash string, address string) (*common.GetProofResponse, error) {
+	return nf.node.GetProof(rootHash, address)
+}
+
+// GetProofDataTrie returns the Merkle Proof for the given address, and another Merkle Proof
+// for the given key, if it exists in the dataTrie
+func (nf *nodeFacade) GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
+	return nf.node.GetProofDataTrie(rootHash, address, key)
+}
+
+// GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
+func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofResponse, error) {
+	currentBlockHeader := nf.blockchain.GetCurrentBlockHeader()
+	if check.IfNil(currentBlockHeader) {
+		return nil, ErrNilBlockHeader
+	}
+
+	rootHash := currentBlockHeader.GetRootHash()
+	hexRootHash := hex.EncodeToString(rootHash)
+
+	return nf.node.GetProof(hexRootHash, address)
+}
+
+// VerifyProof verifies the given Merkle proof
+func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	return nf.node.VerifyProof(rootHash, address, proof)
 }
 
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state

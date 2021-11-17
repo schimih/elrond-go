@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/davecgh/go-spew/spew"
@@ -62,13 +62,13 @@ func NewIntermediateResultsProcessor(
 	}
 
 	base := &basePostProcessor{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: coordinator,
-		store:            store,
-		storageType:      dataRetriever.UnsignedTransactionUnit,
-		mapTxToResult:    make(map[string][]string),
-		economicsFee:     economicsFee,
+		hasher:             hasher,
+		marshalizer:        marshalizer,
+		shardCoordinator:   coordinator,
+		store:              store,
+		storageType:        dataRetriever.UnsignedTransactionUnit,
+		mapProcessedResult: make(map[string]struct{}),
+		economicsFee:       economicsFee,
 	}
 
 	irp := &intermediateResultsProcessor{
@@ -236,7 +236,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
-		irp.mapTxToResult[string(addScr.PrevTxHash)] = append(irp.mapTxToResult[string(addScr.PrevTxHash)], string(scrHash))
+		irp.mapProcessedResult[string(scrHash)] = struct{}{}
 	}
 
 	return nil

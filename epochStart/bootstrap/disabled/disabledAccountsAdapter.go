@@ -1,11 +1,10 @@
 package disabled
 
 import (
-	"context"
-
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type accountsAdapter struct {
@@ -16,27 +15,37 @@ func NewAccountsAdapter() *accountsAdapter {
 	return &accountsAdapter{}
 }
 
+// GetTrie -
+func (a *accountsAdapter) GetTrie(_ []byte) (common.Trie, error) {
+	return nil, nil
+}
+
 // GetCode -
 func (a *accountsAdapter) GetCode(_ []byte) []byte {
 	return nil
 }
 
 // LoadAccount -
-func (a *accountsAdapter) LoadAccount(_ []byte) (state.AccountHandler, error) {
+func (a *accountsAdapter) LoadAccount(_ []byte) (vmcommon.AccountHandler, error) {
 	return nil, nil
 }
 
 // SaveAccount -
-func (a *accountsAdapter) SaveAccount(_ state.AccountHandler) error {
+func (a *accountsAdapter) SaveAccount(_ vmcommon.AccountHandler) error {
 	return nil
 }
 
 // PruneTrie -
-func (a *accountsAdapter) PruneTrie(_ []byte, _ data.TriePruningIdentifier) {
+func (a *accountsAdapter) PruneTrie(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // GetExistingAccount -
-func (a *accountsAdapter) GetExistingAccount(_ []byte) (state.AccountHandler, error) {
+func (a *accountsAdapter) GetExistingAccount(_ []byte) (vmcommon.AccountHandler, error) {
+	return nil, nil
+}
+
+// GetAccountFromBytes -
+func (a *accountsAdapter) GetAccountFromBytes(_ []byte, _ []byte) (vmcommon.AccountHandler, error) {
 	return nil, nil
 }
 
@@ -71,15 +80,15 @@ func (a *accountsAdapter) RecreateTrie(_ []byte) error {
 }
 
 // CancelPrune -
-func (a *accountsAdapter) CancelPrune(_ []byte, _ data.TriePruningIdentifier) {
+func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // SnapshotState -
-func (a *accountsAdapter) SnapshotState(_ []byte, _ context.Context) {
+func (a *accountsAdapter) SnapshotState(_ []byte) {
 }
 
 // SetStateCheckpoint -
-func (a *accountsAdapter) SetStateCheckpoint(_ []byte, _ context.Context) {
+func (a *accountsAdapter) SetStateCheckpoint(_ []byte) {
 }
 
 // IsPruningEnabled -
@@ -93,18 +102,28 @@ func (a *accountsAdapter) ClosePersister() error {
 }
 
 // GetAllLeaves -
-func (a *accountsAdapter) GetAllLeaves(_ []byte, _ context.Context) (chan core.KeyValueHolder, error) {
+func (a *accountsAdapter) GetAllLeaves(_ []byte) (chan core.KeyValueHolder, error) {
 	return nil, nil
 }
 
 // RecreateAllTries -
-func (a *accountsAdapter) RecreateAllTries(_ []byte, _ context.Context) (map[string]data.Trie, error) {
+func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]common.Trie, error) {
 	return nil, nil
 }
 
 // GetNumCheckpoints -
 func (a *accountsAdapter) GetNumCheckpoints() uint32 {
 	return 0
+}
+
+// GetStackDebugFirstEntry -
+func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
+	return nil
+}
+
+// Close -
+func (a *accountsAdapter) Close() error {
+	return nil
 }
 
 // IsInterfaceNil -
