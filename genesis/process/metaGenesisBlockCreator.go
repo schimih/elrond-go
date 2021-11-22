@@ -333,11 +333,13 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
 		ESDTTransferParser:     esdtTransferParser,
 	}
+	log.Debug("[meta] creating tx type handler")
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Debug("[meta] created tx type handler")
 	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, enableEpochs.SCDeployEnableEpoch)
 	if err != nil {
 		return nil, err
@@ -367,6 +369,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ArwenChangeLocker:   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
+
+	log.Debug("[meta]", "args", argsNewSCProcessor)
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
 		return nil, err

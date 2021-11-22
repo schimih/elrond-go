@@ -170,11 +170,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		RelayedTxV2EnableEpoch: pcf.epochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
 		ESDTTransferParser:     esdtTransferParser,
 	}
+	log.Debug("[bp] creating tx type handler")
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, nil, err
 	}
-
+	log.Debug("[bp] created tx type handler")
 	gasHandler, err := preprocess.NewGasComputation(
 		pcf.coreData.EconomicsData(),
 		txTypeHandler,

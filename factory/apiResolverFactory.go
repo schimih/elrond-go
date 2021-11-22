@@ -122,11 +122,12 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		RelayedTxV2EnableEpoch: args.Configs.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
 		ESDTTransferParser:     esdtTransferParser,
 	}
+	log.Debug("[apires] creating tx type handler")
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, err
 	}
-
+	log.Debug("[apires] created tx type handler")
 	txCostHandler, err := transaction.NewTransactionCostEstimator(
 		txTypeHandler,
 		args.CoreComponents.EconomicsData(),
