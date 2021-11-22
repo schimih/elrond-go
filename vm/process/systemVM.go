@@ -1,6 +1,8 @@
 package process
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -107,7 +109,7 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 
 	contract, err := s.systemEI.GetContract(input.RecipientAddr)
 	if err != nil {
-		return nil, vm.ErrUnknownSystemSmartContract
+		return nil, errors.New(fmt.Sprintf("%s: %d", vm.ErrUnknownSystemSmartContract.Error(), input.RecipientAddr))
 	}
 
 	if input.Function == core.SCDeployInitFunctionName {
