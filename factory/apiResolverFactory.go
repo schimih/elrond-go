@@ -151,6 +151,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 		BlockChain:         args.DataComponents.Blockchain(),
 		QueryService:       scQueryService,
+		Marshalizer:        args.CoreComponents.InternalMarshalizer(),
 	}
 	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(argsProcessors)
 	if err != nil {
