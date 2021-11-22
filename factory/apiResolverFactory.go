@@ -139,6 +139,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	log.Debug("[apires] NewTransactionCostEstimator")
 	accountsWrapper := &trieIterators.AccountsWrapper{
 		Mutex:           &sync.Mutex{},
 		AccountsAdapter: args.StateComponents.AccountsAdapterAPI(),
