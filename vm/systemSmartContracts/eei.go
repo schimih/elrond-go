@@ -97,11 +97,13 @@ func (host *vmContext) GetContract(address []byte) (vm.SystemSmartContract, erro
 	code := host.getCodeFromAddress(address)
 	contract, err := host.systemContracts.Get(code)
 	if err != nil {
+		log.Debug("cannot actually get...")
 		return nil, err
 	}
 
 	if !contract.CanUseContract() {
 		// backward compatibility
+		log.Debug("cannot use contract")
 		return nil, vm.ErrUnknownSystemSmartContract
 	}
 
