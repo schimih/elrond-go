@@ -110,6 +110,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	log.Debug("delegationManager: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
 
 	d.delegationMgrEnabled.Toggle(true)
+
 	args.EpochNotifier.RegisterNotifyHandler(d)
 
 	return d, nil
@@ -127,8 +128,8 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	if !d.delegationMgrEnabled.IsSet() {
-		d.eei.AddReturnMessage("delegation manager contract is not enabled")
-		return vmcommon.UserError
+		// d.eei.AddReturnMessage("delegation manager contract is not enabled")
+		// return vmcommon.UserError
 	}
 
 	if len(args.ESDTTransfers) > 0 {
