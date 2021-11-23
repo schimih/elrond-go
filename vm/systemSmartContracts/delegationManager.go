@@ -109,6 +109,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	log.Debug("delegationManager: enable epoch for delegation manager", "epoch", d.enableDelegationMgrEpoch)
 	log.Debug("delegationManager: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
 
+	d.delegationMgrEnabled.Toggle(true)
 	args.EpochNotifier.RegisterNotifyHandler(d)
 
 	return d, nil
