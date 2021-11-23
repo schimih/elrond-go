@@ -779,6 +779,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 	sortedTxs, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId())
+
 	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())

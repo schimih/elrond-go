@@ -499,6 +499,15 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 		numMiniBlocksProcessed += len(separatedBodies[blockType].MiniBlocks)
 	}
 
+	if tc.gasHandler.TotalGasConsumed() > 1300000000 {
+		log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info above 1300000000",
+			"num mini blocks processed", numMiniBlocksProcessed,
+			"total gas consumed", tc.gasHandler.TotalGasConsumed(),
+			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+			"total gas penalized", tc.gasHandler.TotalGasPenalized())
+		return nil
+	}
+
 	log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
 		"num mini blocks processed", numMiniBlocksProcessed,
 		"total gas consumed", tc.gasHandler.TotalGasConsumed(),
