@@ -871,7 +871,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			break
 		}
 
-		if isShardStuck != nil && isShardStuck(receiverShardID) {
+		if isShardStuck != nil && isShardStuck(receiverShardID) && senderShardID != receiverShardID {
 			log.Trace("shard is stuck", "shard", receiverShardID)
 			continue
 		}
