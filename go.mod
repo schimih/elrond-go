@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.34
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.34
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.29
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.30
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.4
 	github.com/ElrondNetwork/elastic-indexer-go v1.1.27-0.20211126141844-4d87b794c1a5
@@ -35,11 +35,11 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.5.5
 	github.com/libp2p/go-libp2p-transport-upgrader v0.4.6
 	github.com/libp2p/go-tcp-transport v0.2.8
-	github.com/mitchellh/mapstructure v1.4.1
+	github.com/mitchellh/mapstructure v1.4.2
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
-	github.com/shirou/gopsutil v3.21.6+incompatible
+	github.com/shirou/gopsutil v3.21.7+incompatible
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.5
@@ -55,4 +55,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.34 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.34 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.34
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.29 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.30-0.20211202144551-56c167d10ec4
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.30 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.31-0.20211203205350-329131ff3107
