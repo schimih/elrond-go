@@ -957,6 +957,8 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.cleanupPools(headerHandler)
 
+	sp.displayDEXInfo(headerHash, headerHandler.GetTimeStamp())
+
 	return nil
 }
 
