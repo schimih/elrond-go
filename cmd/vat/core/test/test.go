@@ -5,7 +5,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/VAT/cmd/vul/core/scan"
+	"github.com/elrond-go/cmd/vat/core/scan"
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 

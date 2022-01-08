@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/VAT/cmd/vul/core/result"
+	"github.com/elrond-go/cmd/vat/core/result"
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 

@@ -19,8 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/VAT/cmd/vat/core/result"
-	"github.com/VAT/cmd/vat/core/test"
+	"github.com/elrond-go/cmd/vat/core/result"
+	"github.com/elrond-go/cmd/vat/core/test"
 	"github.com/urfave/cli"
 )
 

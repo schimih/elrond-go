@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/VAT/cmd/vul/core/result"
+	"github.com/elrond-go/cmd/vat/core/result"
 )
 
 var log = logger.GetOrCreate("vat")
