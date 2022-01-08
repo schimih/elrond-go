@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sort"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -115,6 +112,7 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal, vulTest string) {
 	for {
 		select {
 		case <-stop:
+			//displayAnalysisInfo(r)
 			log.Info("terminating at user's signal...")
 			return
 		case <-time.After(time.Second * 5):
@@ -182,30 +180,6 @@ func startSeedNode() (messenger p2p.Messenger, err error) {
 	return messenger, nil
 }
 
-func displayMessengerInfo(messenger p2p.Messenger) {
-	headerSeedAddresses := []string{"Seednode addresses:"}
-	addresses := make([]*display.LineData, 0)
+func displayAnalysisInfo(result result.ResultsContainer) {
 
-	for _, address := range messenger.Addresses() {
-		addresses = append(addresses, display.NewLineData(false, []string{address}))
-	}
-
-	tbl, _ := display.CreateTableString(headerSeedAddresses, addresses)
-	log.Info("\n" + tbl)
-
-	mesConnectedAddrs := messenger.ConnectedAddresses()
-	sort.Slice(mesConnectedAddrs, func(i, j int) bool {
-		return strings.Compare(mesConnectedAddrs[i], mesConnectedAddrs[j]) < 0
-	})
-
-	log.Info("known peers", "num peers", len(messenger.Peers()))
-	headerConnectedAddresses := []string{fmt.Sprintf("Seednode is connected to %d peers:", len(mesConnectedAddrs))}
-	connAddresses := make([]*display.LineData, len(mesConnectedAddrs))
-
-	for idx, address := range mesConnectedAddrs {
-		connAddresses[idx] = display.NewLineData(false, []string{address})
-	}
-
-	tbl2, _ := display.CreateTableString(headerConnectedAddresses, connAddresses)
-	log.Info("\n" + tbl2)
 }
