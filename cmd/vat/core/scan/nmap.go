@@ -2,77 +2,100 @@ package scan
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os/user"
-	"path/filepath"
+	"os/exec"
 	"strings"
 
-	"github.com/VAT/cmd/vul/core/model"
-	"github.com/VAT/cmd/vul/core/utils"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/VAT/cmd/vul/core/result"
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 
-type NmapScan model.Scan
+/*
+-Pn --skip the ping test and simply scan every target host provided.
+-sS --stealth scan,fastest way to scan ports of the most popular protocol (TCP).
+-pn --port to be scanned.
+-sC --
+*/
+var NMAP_TCP_ELROND = "-Pn -sS -p37373-38383"
+var NMAP_TCP_OUTSIDE_ELROND = "-Pn -sS -p-37372,38384-"
+var NMAP_TCP_WEB = "-Pn -p80,8080,280,443" // added: http-mgmt (280), https (443)
+var NMAP_TCP_SSH = "-Pn -p22"
+var NMAP_TCP_FULL = "-Pn -sS -A -p-"
+var NMAP_TCP_STANDARD = "--randomize-hosts -Pn -sS -A -T4 -g53 --top-ports 1000"
+var log = logger.GetOrCreate("vat")
+
+type ArgNmapScanner struct {
+	Name   string
+	Target string
+	Status int
+	Cmd    string
+}
+
+type nmapScanner struct {
+	name   string
+	target string
+	status int
+	cmd    string
+}
 
 // Constructor for NmapScan
-func NewScan(name, target, folder, file, nmapArgs string) *NmapScan {
-	// Create a Scan
-	s := &NmapScan{
+func newNmapScan(arg *ArgNmapScanner) *nmapScanner {
+	return &nmapScanner{
+		name:   arg.Name,
+		target: arg.Target,
+		status: arg.Status,
+		cmd:    arg.Cmd,
+	}
+}
+
+func CreateNmapScanner(name string, target string, nmapArgs string) *nmapScanner {
+	arg := &ArgNmapScanner{
 		Name:   name,
 		Target: target,
-		Status: model.NOT_STARTED,
+		Status: result.NOT_STARTED,
+		Cmd:    constructCmd(target, nmapArgs),
 	}
-	// Construct output path and create if it doesn't exist
-	s.Outfolder = filepath.Join(utils.Config.Outfolder, utils.CleanPath(target), folder)
-	s.Outfile = filepath.Join(s.Outfolder, utils.CleanPath(file))
-	utils.CheckDir(s.Outfolder)
-	// Construct command
-	s.Cmd = s.constructCmd(nmapArgs)
-	return s
+	return newNmapScan(arg)
 }
 
-func (s *NmapScan) preScan() {
-	s.Status = model.IN_PROGRESS
+func (s *nmapScanner) preScan() {
+	s.status = result.IN_PROGRESS
 }
-func (s *NmapScan) postScan() {
-	s.Status = model.FINISHED
+func (s *nmapScanner) postScan() {
+	s.status = result.FINISHED
 }
 
-func (s *NmapScan) constructCmd(args string) string {
-	// TODO: relative path
-	// strutocamila
-	usr, _ := user.Current()
-	usrName := strings.SplitN(usr.HomeDir, "\\", 3)
-	return fmt.Sprintf("nmap %s %s -oA C:/Users/%s/vat/%s/%s_%s", args, s.Target, usrName[2], s.Target, s.Name, s.Target)
+func constructCmd(target string, args string) string {
+	return fmt.Sprintf("nmap %s %s -oX -", args, target)
 }
 
 // Run nmap scan
-func (s *NmapScan) RunNmap() {
+func (s *nmapScanner) RunNmap() (res *go_nmap.NmapRun) {
 	// Pre-scan checks
 	s.preScan()
 	// Run nmap
-	_, err := utils.ShellCmd(s.Cmd)
+	res, err := shellCmd(s.cmd)
 	if err != nil {
-		s.Status = model.FAILED
+		s.status = result.FAILED
 	}
 	// Post-scan checks
 	s.postScan()
+	return res
 }
 
-// Parse nmap XML output file
-func (s *NmapScan) ParseOutput() *go_nmap.NmapRun {
-	// ???? check for cross platform compatibility
-	sweepXML := fmt.Sprintf("%s.xml", s.Outfile) //s.Outfile
-	dat, err := ioutil.ReadFile(sweepXML)
+func shellCmd(cmd string) (result *go_nmap.NmapRun, err error) {
+	// Prepare Nmap
+	res, err := exec.Command("sh", "-c", cmd).Output()
+	// Run Nmap
 	if err != nil {
-		log.Info(fmt.Sprintf("Error while opening output file: %s", sweepXML))
-		return nil
+		return nil, err
 	}
-
-	res, err := go_nmap.Parse(dat)
+	result, _ = go_nmap.Parse(res)
 	if err != nil {
-		log.Info("Error while parsing nmap output")
-		return nil
+		if !strings.Contains(err.Error(), "exit status 1") {
+			log.Error(err.Error())
+		}
+		return result, err
 	}
-	return res
+	return result, err
 }
