@@ -118,7 +118,7 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal, vulTest string) {
 		case <-time.After(time.Second * 5):
 			t.UpdateTargetsList()
 			r.Evaluate(r.Process(t.Run(), vulTest))
-			//displayMessengerInfo(messenger)
+			r.displayAnalysisInfo()
 			log.Info("Added targets", "targets", len(t.TargetsList))
 		}
 	}
@@ -178,8 +178,4 @@ func startSeedNode() (messenger p2p.Messenger, err error) {
 	}
 
 	return messenger, nil
-}
-
-func displayAnalysisInfo(result result.ResultsContainer) {
-
 }
