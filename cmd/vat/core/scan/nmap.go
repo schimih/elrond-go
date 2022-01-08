@@ -39,7 +39,7 @@ type nmapScanner struct {
 }
 
 // Constructor for NmapScan
-func newNmapScan(arg *ArgNmapScanner) *nmapScanner {
+func newNmapScanner(arg *ArgNmapScanner) *nmapScanner {
 	return &nmapScanner{
 		name:   arg.Name,
 		target: arg.Target,
@@ -55,7 +55,7 @@ func CreateNmapScanner(name string, target string, nmapArgs string) *nmapScanner
 		Status: result.NOT_STARTED,
 		Cmd:    constructCmd(target, nmapArgs),
 	}
-	return newNmapScan(arg)
+	return newNmapScanner(arg)
 }
 
 func (s *nmapScanner) preScan() {
@@ -71,14 +71,13 @@ func constructCmd(target string, args string) string {
 
 // Run nmap scan
 func (s *nmapScanner) RunNmap() (res *go_nmap.NmapRun) {
-	// Pre-scan checks
 	s.preScan()
 	// Run nmap
 	res, err := shellCmd(s.cmd)
 	if err != nil {
 		s.status = result.FAILED
 	}
-	// Post-scan checks
+
 	s.postScan()
 	return res
 }

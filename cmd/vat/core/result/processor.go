@@ -1,9 +1,6 @@
 package result
 
 import (
-	"fmt"
-
-	"github.com/ElrondNetwork/elrond-go-core/display"
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 
@@ -64,9 +61,9 @@ func (p Port) Status() PortStatus {
 func (r *ResultsContainer) Process(NmapScanResult []*go_nmap.NmapRun, testType string) *ResultsContainer {
 	var tempPort Port
 	var tempPeer Peer
-	portSlice := make([]Port, 0)
 	for _, nmapRun := range NmapScanResult {
 		for hidx, host := range nmapRun.Hosts {
+			portSlice := make([]Port, 0)
 			for pidx, port := range host.Ports {
 				portSlice = append(portSlice, *tempPort.Add(uint(pidx), port.PortId, port.Protocol, port.State.State, port.Owner.Name))
 			}
@@ -110,30 +107,4 @@ func (port *Port) Add(id uint,
 	}
 
 	return port
-}
-
-func (r *ResultsContainer) displayAnalysisInfo() {
-	header := []string{"Index", "Address", "Port", "Status", "Service"}
-	peersDB := r.Results
-	if len(peersDB) == 0 {
-		log.Info("No peers in DB. First load a json or run discovery!")
-		return
-	}
-	dataLines := make([]*display.LineData, 0, len(r.Results))
-
-	for idx, p := range r.Results {
-		rAddress := p.Address
-		for jdx, tPort := range p.Ports {
-			rPort := fmt.Sprintf("%d", tPort.Number)
-			rStatus := tPort.State
-			rProtocol := tPort.Protocol
-			rIndex := fmt.Sprintf("%d", idx)
-			horizontalLineAfter := jdx == len(p.Ports)-1
-			lines := display.NewLineData(horizontalLineAfter, []string{rIndex, rAddress, rPort, rStatus, rProtocol})
-			dataLines = append(dataLines, lines)
-		}
-	}
-
-	table, _ := display.CreateTableString(header, dataLines)
-	fmt.Println(table)
 }

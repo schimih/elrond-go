@@ -1,13 +1,10 @@
 package utils
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/display"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/elrond-go/cmd/vat/core/result"
 )
 
 var log = logger.GetOrCreate("vat")
@@ -84,30 +81,4 @@ func LoadFile(src string) bool {
 	// 	}
 	// }
 	return true
-}
-
-func ScanShow(item string) {
-	header := []string{"Index", "Address", "Port", "Status", "Service"}
-	peersDB := result.GetAllPeers(Config.DB)
-	if len(peersDB) == 0 {
-		log.Info("No peers in DB. First load a json or run discovery!")
-		return
-	}
-	dataLines := make([]*display.LineData, 0, len(peersDB))
-
-	for idx, p := range peersDB {
-		rAddress := p.Address
-		for jdx, tPort := range p.GetPorts(Config.DB) {
-			rPort := fmt.Sprintf("%d", tPort.Number)
-			rStatus := tPort.Status
-			rProtocol := tPort.Protocol
-			rIndex := fmt.Sprintf("%d", idx)
-			horizontalLineAfter := jdx == len(p.GetPorts(Config.DB))-1
-			lines := display.NewLineData(horizontalLineAfter, []string{rIndex, rAddress, rPort, rStatus, rProtocol})
-			dataLines = append(dataLines, lines)
-		}
-	}
-
-	table, _ := display.CreateTableString(header, dataLines)
-	fmt.Println(table)
 }

@@ -1,15 +1,21 @@
 package result
 
+import (
+	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go-core/display"
+)
+
 type assessor struct {
 	assessments []AssessmentRunner
 }
 
-func (r *ResultsContainer) Evaluate(container *ResultsContainer) {
+func (r *ResultsContainer) EvaluateNewPeers(container *ResultsContainer) {
 	for _, peer := range r.Results {
 		peer.TestType = "TCP-ELROND"
 		if peer.TestType == "TCP-ELROND" {
 			if peer.Evaluation.State != "EVALUATED" {
-				peer.RunEvaluation()
+				r.RunAssessment()
 			} else {
 				log.Info("PEER already evaluated")
 			}
@@ -19,28 +25,75 @@ func (r *ResultsContainer) Evaluate(container *ResultsContainer) {
 	}
 }
 
-func (p *Peer) RunEvaluation() {
-	for _, port := range p.Ports {
-		var rating Rating
-		if port.Status() == Open {
-			if port.PortRange(37373, 38383) {
-				p.Evaluation.Process("TCP-ELROND")
+func (r *ResultsContainer) RunAssessment() {
+	for idx, result := range r.Results {
+		for _, port := range result.Ports {
+			if port.Status() == Open {
+				if port.InsidePortRange(37373, 38383) {
+					r.Results[idx].Evaluation.Process("TCP-ELROND")
+				} else {
+					if port.Number == 80 {
+						r.Results[idx].Evaluation.Process("TCP-WEB")
+					}
+					if port.Number == 8080 {
+						r.Results[idx].Evaluation.Process("TCP-WEB")
+					}
+					if port.Number == 22 {
+						r.Results[idx].Evaluation.Process("TCP-SSH")
+
+					}
+				}
 			} else {
-				if port.Number == 80 {
-					p.Evaluation.Process("TCP-WEB")
+				r.Results[idx].Evaluation.Process("TCP-SSH")
+			}
+		}
+
+	}
+}
+
+func (r *ResultsContainer) DisplayAnalysisInfo() {
+	header := []string{"Index", "Address", "Port", "Status", "Service"}
+	peersDB := r.Results
+	if len(peersDB) == 0 {
+		log.Info("No peers in DB. First load a json or run discovery!")
+		return
+	}
+	dataLines := make([]*display.LineData, 0, len(r.Results))
+	for idx, p := range r.Results {
+		rAddress := p.Address
+		if len(p.Ports) != 0 {
+			for jdx, tPort := range p.Ports {
+				if jdx == 0 {
+					rPort := fmt.Sprintf("%d", tPort.Number)
+					rStatus := tPort.State
+					rProtocol := tPort.Protocol
+					rIndex := fmt.Sprintf("%d", idx)
+					horizontalLineAfter := jdx == len(p.Ports)-1
+					if len(p.Ports) == 1 {
+						horizontalLineAfter = false
+					}
+					lines := display.NewLineData(horizontalLineAfter, []string{rIndex, rAddress, rPort, rStatus, rProtocol})
+					dataLines = append(dataLines, lines)
 				}
-				if port.Number == 8080 {
-					p.Evaluation.Process("TCP-WEB")
-				}
-				if port.Number == 22 {
-					//
-					p.Evaluation.Process("TCP-SSH")
-				}
+				rPort := fmt.Sprintf("%d", tPort.Number)
+				rStatus := tPort.State
+				rProtocol := tPort.Protocol
+				horizontalLineAfter := jdx == len(p.Ports)-1
+				lines := display.NewLineData(horizontalLineAfter, []string{"", "", rPort, rStatus, rProtocol})
+				dataLines = append(dataLines, lines)
 			}
 		} else {
-			rating.State = "EVALUATED"
-			rating.Reason = append(rating.Reason, "no open port")
-			rating.Value = 999
+			rIndex := fmt.Sprintf("%d", idx)
+			lines := display.NewLineData(true, []string{rIndex, rAddress, "NO OPEN PORTS"})
+			dataLines = append(dataLines, lines)
 		}
+
+		Rating := fmt.Sprintf("%d", r.Results[idx].Evaluation.Value)
+		//totalHorizontalLine := (temp == len(dataLines)+1)
+		totalline := display.NewLineData(true, []string{">>>>>", ">>>>>>>>>>>", ">>>>>", "RATING", Rating})
+		dataLines = append(dataLines, totalline)
 	}
+
+	table, _ := display.CreateTableString(header, dataLines)
+	fmt.Println(table)
 }

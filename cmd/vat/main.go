@@ -16,8 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/elrond-go/cmd/vat/core/analysis"
 	"github.com/elrond-go/cmd/vat/core/result"
-	"github.com/elrond-go/cmd/vat/core/test"
 	"github.com/urfave/cli"
 )
 
@@ -61,7 +61,6 @@ var (
 var log = logger.GetOrCreate("vat")
 
 func main() {
-
 	log.Info("Starting VAT")
 	app := cli.NewApp()
 	cli.AppHelpTemplate = vulTemplate
@@ -71,14 +70,16 @@ func main() {
 	app.Flags = []cli.Flag{
 		testType,
 	}
+
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
 			Email: "contact@elrond.com",
 		},
 	}
-	app.Action = func(c *cli.Context) error {
-		return startVulnerabilityAnalysis(c)
+
+	app.Action = func(ctx *cli.Context) error {
+		return startVulnerabilityAnalysis(ctx)
 	}
 
 	err := app.Run(os.Args)
@@ -87,9 +88,11 @@ func main() {
 		os.Exit(1)
 	}
 }
+
 func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	var err error
-	var vulTest string
+	var AnalysisType string
+	// to implement ctx for test flag
 
 	// Start seednode
 	messenger, err := startSeedNode()
@@ -100,26 +103,26 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info("Analysis is now running")
-	mainLoop(messenger, sigs, vulTest)
+	mainLoop(messenger, sigs, AnalysisType)
 
 	return nil
 }
 
 func mainLoop(messenger p2p.Messenger, stop chan os.Signal, vulTest string) {
-	t := test.NewTest(messenger, vulTest)
+	d := analysis.NewP2pDiscoverer(messenger)
+	a, _ := analysis.NewAnalyzer(d, vulTest)
 	r := result.NewResultsContainer(messenger)
 
 	for {
 		select {
 		case <-stop:
-			//displayAnalysisInfo(r)
 			log.Info("terminating at user's signal...")
 			return
 		case <-time.After(time.Second * 5):
-			t.UpdateTargetsList()
-			r.Evaluate(r.Process(t.Run(), vulTest))
-			r.displayAnalysisInfo()
-			log.Info("Added targets", "targets", len(t.TargetsList))
+			a.DiscoverNewPeers()
+			r.EvaluateNewPeers(r.Process(a.Run(), vulTest))
+			r.DisplayAnalysisInfo()
+			log.Info("Added targets", "targets", len(a.Targets))
 		}
 	}
 }

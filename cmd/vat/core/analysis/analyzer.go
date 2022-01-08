@@ -1,18 +1,19 @@
-package test
+package analysis
 
 import (
+	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/elrond-go/cmd/vat/core/scan"
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 
-type Test struct {
-	TargetsList []Target
-	Messenger   p2p.Messenger
-	TestType    string
+type Analyzer struct {
+	Targets      []Target
+	discoverer   Discoverer
+	AnalysisType string
 }
 
 // TargetStatus represents a target's state.
@@ -31,19 +32,27 @@ func (t Target) ActualStatus() TargetStatus {
 
 var log = logger.GetOrCreate("vat")
 
-func NewTest(messenger p2p.Messenger, testType string) *Test {
-	t := &Test{}
-	t.Messenger = messenger
-	t.TestType = testType
-	t.TargetsList = make([]Target, len(messenger.ConnectedAddresses()))
-	return t
+func NewAnalyzer(discoverer Discoverer, testType string) (*Analyzer, error) {
+	if check.IfNil(discoverer) {
+		return nil, fmt.Errorf("Discoverer needed")
+	}
+	a := &Analyzer{}
+	a.discoverer = discoverer
+	a.AnalysisType = testType
+	a.Targets = make([]Target, 0)
+
+	return a, nil
 }
 
-func (t *Test) Run() (NmapScanResults []*go_nmap.NmapRun) {
+func (a *Analyzer) DiscoverNewPeers() {
+	a.Targets = a.discoverer.DiscoverNewTargets(a.Targets)
+}
+
+func (t *Analyzer) Run() (NmapScanResults []*go_nmap.NmapRun) {
 	NmapTestResults := make([]*go_nmap.NmapRun, 0)
 	//force full test
-	t.TestType = "TCP-ALL"
-	switch t.TestType {
+	t.AnalysisType = "TCP-ALL"
+	switch t.AnalysisType {
 	case "TCP-ELROND":
 		log.Info("Verifying if just the elrond port list (37373-38383) is open")
 		NmapScanResults = t.StartScan(scan.NMAP_TCP_ELROND, NmapTestResults)
@@ -57,22 +66,22 @@ func (t *Test) Run() (NmapScanResults []*go_nmap.NmapRun) {
 		log.Info("Scans everything")
 		NmapScanResults = t.StartScan(scan.NMAP_TCP_STANDARD, NmapTestResults)
 	default:
-		log.Error("Command unkown, no test will start", "command", t.TestType)
+		log.Error("Command unkown, no test will start", "command", t.AnalysisType)
 		return
 	}
 	return NmapScanResults
 }
 
-func (t *Test) StartScan(nmapArgs string, NmapTestResults []*go_nmap.NmapRun) (testresults []*go_nmap.NmapRun) {
+func (t *Analyzer) StartScan(nmapArgs string, NmapTestResults []*go_nmap.NmapRun) (testresults []*go_nmap.NmapRun) {
 	var wg sync.WaitGroup //=
-	for _, h := range t.TargetsList {
+	for _, h := range t.Targets {
 		if h.ActualStatus() == "NEW" {
 			wg.Add(1) //=
 
 			go func() { //=
 				defer wg.Done() //=
 				temp := h
-				NmapTestResults = append(NmapTestResults, t.worker(t.TestType, &temp, nmapArgs))
+				NmapTestResults = append(NmapTestResults, t.worker(t.AnalysisType, &temp, nmapArgs))
 			}()
 			wg.Wait() //=
 		} else {
@@ -83,7 +92,7 @@ func (t *Test) StartScan(nmapArgs string, NmapTestResults []*go_nmap.NmapRun) (t
 	return NmapTestResults
 }
 
-func (t *Test) worker(name string, h *Target, nmapArgs string) (rawResult *go_nmap.NmapRun) {
+func (t *Analyzer) worker(name string, h *Target, nmapArgs string) (rawResult *go_nmap.NmapRun) {
 
 	s := scan.CreateNmapScanner(name, h.Address, nmapArgs)
 	log.Info("Starting scan for:", "address", h.Address)
@@ -97,13 +106,18 @@ func (t *Test) worker(name string, h *Target, nmapArgs string) (rawResult *go_nm
 	return res
 }
 
-func (t *Test) ProcessScanResult(address string) error {
+func (t *Analyzer) ProcessScanResult(address string) error {
 	// Each time a test worker finishes test, change status to Scanned in targets list
-	for idx, target := range t.TargetsList {
+	for idx, target := range t.Targets {
 		if target.Address == address {
-			t.TargetsList[idx].Status = "SCANNED"
+			t.Targets[idx].Status = "SCANNED"
 			log.Info("changed state to SCANNED for ", "address", target.Address)
 		}
 	}
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (a *Analyzer) IsInterfaceNil() bool {
+	return a == nil
 }
