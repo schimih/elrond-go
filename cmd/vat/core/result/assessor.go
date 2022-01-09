@@ -12,8 +12,8 @@ type assessor struct {
 
 func (r *ResultsContainer) EvaluateNewPeers(container *ResultsContainer) {
 	for _, peer := range r.Results {
-		peer.TestType = "TCP-ELROND"
-		if peer.TestType == "TCP-ELROND" {
+		peer.AnalysisType = "TCP-ELROND"
+		if peer.AnalysisType == "TCP-ELROND" {
 			if peer.Evaluation.State != "EVALUATED" {
 				r.RunAssessment()
 			} else {
@@ -74,13 +74,15 @@ func (r *ResultsContainer) DisplayAnalysisInfo() {
 					}
 					lines := display.NewLineData(horizontalLineAfter, []string{rIndex, rAddress, rPort, rStatus, rProtocol})
 					dataLines = append(dataLines, lines)
+				} else {
+					rPort := fmt.Sprintf("%d", tPort.Number)
+					rStatus := tPort.State
+					rProtocol := tPort.Protocol
+					horizontalLineAfter := jdx == len(p.Ports)-1
+					lines := display.NewLineData(horizontalLineAfter, []string{"", "", rPort, rStatus, rProtocol})
+					dataLines = append(dataLines, lines)
 				}
-				rPort := fmt.Sprintf("%d", tPort.Number)
-				rStatus := tPort.State
-				rProtocol := tPort.Protocol
-				horizontalLineAfter := jdx == len(p.Ports)-1
-				lines := display.NewLineData(horizontalLineAfter, []string{"", "", rPort, rStatus, rProtocol})
-				dataLines = append(dataLines, lines)
+
 			}
 		} else {
 			rIndex := fmt.Sprintf("%d", idx)

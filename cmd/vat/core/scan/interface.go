@@ -4,8 +4,7 @@ import (
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 
-type NmapWrapper interface {
-	RunNmap()
-	ParseOutput() *go_nmap.NmapRun
-	IsListNil() bool
+type Scanner interface {
+	Scan() *go_nmap.NmapRun
+	IsInterfaceNil() bool
 }

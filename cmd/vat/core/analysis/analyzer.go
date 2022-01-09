@@ -6,13 +6,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/elrond-go/cmd/vat/core/scan"
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 
 type Analyzer struct {
 	Targets      []Target
 	discoverer   Discoverer
+	scanner      ScannerFactory
 	AnalysisType string
 }
 
@@ -32,14 +32,16 @@ func (t Target) ActualStatus() TargetStatus {
 
 var log = logger.GetOrCreate("vat")
 
-func NewAnalyzer(discoverer Discoverer, testType string) (*Analyzer, error) {
+func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, AnalysisType string) (*Analyzer, error) {
 	if check.IfNil(discoverer) {
 		return nil, fmt.Errorf("Discoverer needed")
 	}
+
 	a := &Analyzer{}
 	a.discoverer = discoverer
-	a.AnalysisType = testType
+	a.AnalysisType = AnalysisType
 	a.Targets = make([]Target, 0)
+	a.scanner = sf
 
 	return a, nil
 }
@@ -48,69 +50,44 @@ func (a *Analyzer) DiscoverNewPeers() {
 	a.Targets = a.discoverer.DiscoverNewTargets(a.Targets)
 }
 
-func (t *Analyzer) Run() (NmapScanResults []*go_nmap.NmapRun) {
-	NmapTestResults := make([]*go_nmap.NmapRun, 0)
-	//force full test
-	t.AnalysisType = "TCP-ALL"
-	switch t.AnalysisType {
-	case "TCP-ELROND":
-		log.Info("Verifying if just the elrond port list (37373-38383) is open")
-		NmapScanResults = t.StartScan(scan.NMAP_TCP_ELROND, NmapTestResults)
-	case "TCP-WEB":
-		log.Info("Verifying if port 80 or 8080 is accessible")
-		NmapScanResults = t.StartScan(scan.NMAP_TCP_WEB, NmapTestResults)
-	case "TCP-SSH":
-		log.Info("Verifying if the ssh port 22 is accessible")
-		NmapScanResults = t.StartScan(scan.NMAP_TCP_SSH, NmapTestResults)
-	case "TCP-ALL":
-		log.Info("Scans everything")
-		NmapScanResults = t.StartScan(scan.NMAP_TCP_STANDARD, NmapTestResults)
-	default:
-		log.Error("Command unkown, no test will start", "command", t.AnalysisType)
-		return
-	}
-	return NmapScanResults
-}
-
-func (t *Analyzer) StartScan(nmapArgs string, NmapTestResults []*go_nmap.NmapRun) (testresults []*go_nmap.NmapRun) {
-	var wg sync.WaitGroup //=
-	for _, h := range t.Targets {
+func (a *Analyzer) StartScan() (testresults []*go_nmap.NmapRun) {
+	nmapScanResults := make([]*go_nmap.NmapRun, 0)
+	var wg sync.WaitGroup
+	for _, h := range a.Targets {
 		if h.ActualStatus() == "NEW" {
-			wg.Add(1) //=
-
-			go func() { //=
-				defer wg.Done() //=
-				temp := h
-				NmapTestResults = append(NmapTestResults, t.worker(t.AnalysisType, &temp, nmapArgs))
+			wg.Add(1)
+			temp := h
+			go func() {
+				defer wg.Done()
+				nmapScanResults = append(nmapScanResults, a.worker(&temp))
 			}()
-			wg.Wait() //=
+			//wg.Wait() //=
 		} else {
 			log.Info("Target already scanned", "address", h.Address)
 		}
 	}
-	//wg.Wait() //=
-	return NmapTestResults
+	wg.Wait()
+	return nmapScanResults
 }
 
-func (t *Analyzer) worker(name string, h *Target, nmapArgs string) (rawResult *go_nmap.NmapRun) {
+func (a *Analyzer) worker(h *Target) (rawResult *go_nmap.NmapRun) {
 
-	s := scan.CreateNmapScanner(name, h.Address, nmapArgs)
+	s := a.scanner.CreateScanner(h.Address, a.AnalysisType)
 	log.Info("Starting scan for:", "address", h.Address)
 	// Run the scan
-	res := s.RunNmap()
+	res := s.Scan()
 	if res != nil {
-		// hosts - because nmap
-		t.ProcessScanResult(h.Address)
+		a.ProcessScanResult(h.Address)
 	}
-	log.Info("Scanning done for peer:", "address", h.Address)
+	log.Info("Scanning done for target:", "address", h.Address)
 	return res
 }
 
-func (t *Analyzer) ProcessScanResult(address string) error {
+func (a *Analyzer) ProcessScanResult(address string) error {
 	// Each time a test worker finishes test, change status to Scanned in targets list
-	for idx, target := range t.Targets {
+	for idx, target := range a.Targets {
 		if target.Address == address {
-			t.Targets[idx].Status = "SCANNED"
+			a.Targets[idx].Status = "SCANNED"
 			log.Info("changed state to SCANNED for ", "address", target.Address)
 		}
 	}

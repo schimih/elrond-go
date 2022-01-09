@@ -23,7 +23,7 @@ func (d *FakeDiscoverer) IsInterfaceNil() bool {
 func TestNewAnalyzer(t *testing.T) {
 	analysisType := "tralala"
 	fd := &FakeDiscoverer{}
-	na, err := NewAnalyzer(fd, analysisType)
+	na, err := NewAnalyzer(fd, sf, analysisType)
 	assert.False(t, check.IfNil(na))
 	assert.Nil(t, err)
 }

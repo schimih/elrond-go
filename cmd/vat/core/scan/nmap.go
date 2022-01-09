@@ -39,23 +39,13 @@ type nmapScanner struct {
 }
 
 // Constructor for NmapScan
-func newNmapScanner(arg *ArgNmapScanner) *nmapScanner {
+func NewNmapScanner(name string, target string, nmapArgs string) *nmapScanner {
 	return &nmapScanner{
-		name:   arg.Name,
-		target: arg.Target,
-		status: arg.Status,
-		cmd:    arg.Cmd,
+		name:   name,
+		target: target,
+		status: result.NOT_STARTED,
+		cmd:    constructCmd(target, nmapArgs),
 	}
-}
-
-func CreateNmapScanner(name string, target string, nmapArgs string) *nmapScanner {
-	arg := &ArgNmapScanner{
-		Name:   name,
-		Target: target,
-		Status: result.NOT_STARTED,
-		Cmd:    constructCmd(target, nmapArgs),
-	}
-	return newNmapScanner(arg)
 }
 
 func (s *nmapScanner) preScan() {
@@ -70,7 +60,7 @@ func constructCmd(target string, args string) string {
 }
 
 // Run nmap scan
-func (s *nmapScanner) RunNmap() (res *go_nmap.NmapRun) {
+func (s *nmapScanner) Scan() (res *go_nmap.NmapRun) {
 	s.preScan()
 	// Run nmap
 	res, err := shellCmd(s.cmd)
@@ -97,4 +87,9 @@ func shellCmd(cmd string) (result *go_nmap.NmapRun, err error) {
 		return result, err
 	}
 	return result, err
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *nmapScanner) IsInterfaceNil() bool {
+	return s == nil
 }

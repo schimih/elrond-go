@@ -18,11 +18,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/elrond-go/cmd/vat/core/analysis"
 	"github.com/elrond-go/cmd/vat/core/result"
+	"github.com/elrond-go/cmd/vat/core/scan"
 	"github.com/urfave/cli"
 )
 
 type cfg struct {
-	vulAnalysisType string
+	vatAnalysisType string
 }
 
 const (
@@ -32,7 +33,7 @@ const (
 )
 
 var (
-	vulTemplate = `NAME:
+	vatTemplate = `NAME:
 	{{.Name}} - {{.Usage}}
  USAGE:
 	{{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
@@ -50,9 +51,9 @@ var (
 
 	analysisType = cli.StringFlag{
 		Name:        "analysis-type",
-		Usage:       "Provide type of analysis.",
+		Usage:       "Provide type of analysis. Default full test",
 		Value:       "full",
-		Destination: &argsConfig.vulAnalysisType,
+		Destination: &argsConfig.vatAnalysisType,
 	}
 	argsConfig           = &cfg{}
 	p2pConfigurationFile = "./config/p2p.toml"
@@ -63,7 +64,7 @@ var log = logger.GetOrCreate("vat")
 func main() {
 	log.Info("Starting VAT")
 	app := cli.NewApp()
-	cli.AppHelpTemplate = vulTemplate
+	cli.AppHelpTemplate = vatTemplate
 	app.Name = "Vulnerability Analysis Tool"
 	app.Version = "v0.0.1"
 	app.Usage = "This tool will be used for security checks on Elrond EcoSystem (v0.0.1 - portscanner and ssh access)"
@@ -91,7 +92,6 @@ func main() {
 
 func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	var err error
-	var AnalysisType string
 	// to implement ctx for test flag
 
 	// Start seednode
@@ -103,14 +103,16 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info("Analysis is now running")
+	AnalysisType := "TCP-WEB"
 	mainLoop(messenger, sigs, AnalysisType)
 
 	return nil
 }
 
 func mainLoop(messenger p2p.Messenger, stop chan os.Signal, AnalysisType string) {
+	sf := scan.NewNmapScannerFactory()
 	d := analysis.NewP2pDiscoverer(messenger)
-	a, _ := analysis.NewAnalyzer(d, AnalysisType)
+	a, _ := analysis.NewAnalyzer(d, sf, AnalysisType)
 	r := result.NewResultsContainer(messenger)
 
 	for {
@@ -120,7 +122,7 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal, AnalysisType string)
 			return
 		case <-time.After(time.Second * 5):
 			a.DiscoverNewPeers()
-			r.EvaluateNewPeers(r.Process(a.Run(), AnalysisType))
+			r.EvaluateNewPeers(r.Process(a.StartScan(), AnalysisType))
 			r.DisplayAnalysisInfo()
 			log.Info("Added targets", "targets", len(a.Targets))
 		}
