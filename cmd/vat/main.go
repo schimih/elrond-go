@@ -22,7 +22,7 @@ import (
 )
 
 type cfg struct {
-	vulTestType string
+	vulAnalysisType string
 }
 
 const (
@@ -47,12 +47,12 @@ var (
 	{{.Version}}
 	{{end}}
  `
-	// p2pSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
-	testType = cli.StringFlag{
-		Name:        "test-type",
-		Usage:       "P2P seed will be used when generating credentials for p2p component. Can be any string.",
+
+	analysisType = cli.StringFlag{
+		Name:        "analysis-type",
+		Usage:       "Provide type of analysis.",
 		Value:       "full",
-		Destination: &argsConfig.vulTestType,
+		Destination: &argsConfig.vulAnalysisType,
 	}
 	argsConfig           = &cfg{}
 	p2pConfigurationFile = "./config/p2p.toml"
@@ -68,7 +68,7 @@ func main() {
 	app.Version = "v0.0.1"
 	app.Usage = "This tool will be used for security checks on Elrond EcoSystem (v0.0.1 - portscanner and ssh access)"
 	app.Flags = []cli.Flag{
-		testType,
+		analysisType,
 	}
 
 	app.Authors = []cli.Author{
@@ -108,9 +108,9 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	return nil
 }
 
-func mainLoop(messenger p2p.Messenger, stop chan os.Signal, vulTest string) {
+func mainLoop(messenger p2p.Messenger, stop chan os.Signal, AnalysisType string) {
 	d := analysis.NewP2pDiscoverer(messenger)
-	a, _ := analysis.NewAnalyzer(d, vulTest)
+	a, _ := analysis.NewAnalyzer(d, AnalysisType)
 	r := result.NewResultsContainer(messenger)
 
 	for {
@@ -120,7 +120,7 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal, vulTest string) {
 			return
 		case <-time.After(time.Second * 5):
 			a.DiscoverNewPeers()
-			r.EvaluateNewPeers(r.Process(a.Run(), vulTest))
+			r.EvaluateNewPeers(r.Process(a.Run(), AnalysisType))
 			r.DisplayAnalysisInfo()
 			log.Info("Added targets", "targets", len(a.Targets))
 		}
