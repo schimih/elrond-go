@@ -17,8 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/elrond-go/cmd/vat/core/analysis"
-	"github.com/elrond-go/cmd/vat/core/result"
-	"github.com/elrond-go/cmd/vat/core/scan"
+	"github.com/elrond-go/cmd/vat/core/evaluation"
+	"github.com/elrond-go/cmd/vat/core/scan/factory"
 	"github.com/urfave/cli"
 )
 
@@ -57,6 +57,15 @@ var (
 	}
 	argsConfig           = &cfg{}
 	p2pConfigurationFile = "./config/p2p.toml"
+)
+
+const (
+	TCP_ELROND = iota
+	TCP_OUTSIDE_ELROND
+	TCP_WEB
+	TCP_SSH
+	TCP_FULL
+	TCP_STANDARD
 )
 
 var log = logger.GetOrCreate("vat")
@@ -103,17 +112,22 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info("Analysis is now running")
-	AnalysisType := "TCP-WEB"
+	AnalysisType := TCP_ELROND
 	mainLoop(messenger, sigs, AnalysisType)
 
 	return nil
 }
 
-func mainLoop(messenger p2p.Messenger, stop chan os.Signal, AnalysisType string) {
-	sf := scan.NewNmapScannerFactory()
+func mainLoop(messenger p2p.Messenger, stop chan os.Signal, analysisType int) {
+	sf := factory.NewNmapScannerFactory()
+	pf := factory.NewParserFactory()
+	ef := evaluation.NewEvaluatorFactory()
 	d := analysis.NewP2pDiscoverer(messenger)
-	a, _ := analysis.NewAnalyzer(d, sf, AnalysisType)
-	r := result.NewResultsContainer(messenger)
+	a, _ := analysis.NewAnalyzer(d, sf, pf, analysisType)
+
+	report := evaluation.NewAssessmentReport(ef)
+
+	//manager := manager.NewAnalysisManager(analysisType)
 
 	for {
 		select {
@@ -122,8 +136,8 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal, AnalysisType string)
 			return
 		case <-time.After(time.Second * 5):
 			a.DiscoverNewPeers()
-			r.EvaluateNewPeers(r.Process(a.StartScan(), AnalysisType))
-			r.DisplayAnalysisInfo()
+			report.GenerateReport(a.Analyze())
+			report.DisplayToTable()
 			log.Info("Added targets", "targets", len(a.Targets))
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/elrond-go/cmd/vat/core/scan"
 )
 
 type P2pDiscoverer struct {
@@ -16,15 +17,15 @@ func NewP2pDiscoverer(messenger p2p.Messenger) *P2pDiscoverer {
 	}
 }
 
-func (d *P2pDiscoverer) DiscoverNewTargets(existingTargets []Target) (targets []Target) {
-	targets = existingTargets
+func (d *P2pDiscoverer) DiscoverNewTargets(targetsDiscoveredLastRound []Target) (discoveredTargets []Target) {
+	discoveredTargets = targetsDiscoveredLastRound
 	currentlyConnectedTargets := d.messenger.ConnectedAddresses()
 
 	for idx, address := range currentlyConnectedTargets {
 		targetAddress := strings.Split(address, "/")
-		target := MakeTarget(uint(idx), targetAddress[1], targetAddress[2], targetAddress[4], "NEW")
-		if !containsTarget(targets, target) {
-			targets = append(targets, target)
+		target := MakeTarget(uint(idx), targetAddress[1], targetAddress[2], targetAddress[4], scan.NEW)
+		if !containsTarget(discoveredTargets, target) {
+			discoveredTargets = append(discoveredTargets, target)
 		}
 	}
 	return
