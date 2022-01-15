@@ -18,26 +18,6 @@ type Analyzer struct {
 	ManagerCommand int
 }
 
-// TargetStatus represents a target's state.
-type TargetStatus string
-
-// Enumerates the different possible state values.
-const (
-	New     TargetStatus = "NEW"
-	Scanned TargetStatus = "SCANNED"
-	Expired TargetStatus = "EXPIRED"
-)
-
-const (
-	NO_COMMAND = iota
-	CHANGE_STATUS_TO_EXPIRED
-)
-
-// Status returns the status of a target.
-func (t Target) ActualStatus() TargetStatus {
-	return TargetStatus(t.Status)
-}
-
 var log = logger.GetOrCreate("vat")
 
 func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory, analysisType int) (*Analyzer, error) {

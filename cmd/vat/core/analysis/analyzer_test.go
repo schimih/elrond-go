@@ -49,6 +49,38 @@ func TestNewAnalyzer(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestNewAnalyzer_DiscovererNilCheck(t *testing.T) {
+	analysisType := 0
+	sff := &FakeScannerFactory{}
+	fpf := &FakeParserFactory{}
+	na, err := NewAnalyzer(nil, sff, fpf, analysisType)
+	assert.True(t, check.IfNil(na))
+	expectedErrorString := "Discoverer needed"
+	assert.EqualErrorf(t, err, expectedErrorString, "wrong message")
+}
+
+func TestNewAnalyzer_ScannerFactoryNilCheck(t *testing.T) {
+	analysisType := 0
+	fd := &FakeDiscoverer{}
+	//sff := &FakeScannerFactory{}
+	fpf := &FakeParserFactory{}
+	na, err := NewAnalyzer(fd, nil, fpf, analysisType)
+	assert.True(t, check.IfNil(na))
+	expectedErrorString := "ScannerFactory needed"
+	assert.EqualErrorf(t, err, expectedErrorString, "wrong message")
+}
+
+func TestNewAnalyzer_ParserFactoryNilCheck(t *testing.T) {
+	analysisType := 0
+	fd := &FakeDiscoverer{}
+	sff := &FakeScannerFactory{}
+	//fpf := &FakeParserFactory{}
+	na, err := NewAnalyzer(fd, sff, nil, analysisType)
+	assert.True(t, check.IfNil(na))
+	expectedErrorString := "ParserFactory needed"
+	assert.EqualErrorf(t, err, expectedErrorString, "wrong message")
+}
+
 func TestAnalyzer_DiscoverNewPeers(t *testing.T) {
 	analysisType := 0
 	discovererStub := NewDiscovererStub()
