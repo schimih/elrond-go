@@ -113,8 +113,8 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info("Analysis is now running")
-	AnalysisType := utils.TCP_WEB
-	mainLoop(messenger, sigs, AnalysisType)
+	analysisType := utils.TCP_WEB
+	mainLoop(messenger, sigs, analysisType)
 
 	return nil
 }
@@ -126,20 +126,21 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal, analysisType utils.A
 	d := analysis.NewP2pDiscoverer(messenger)
 	a, _ := analysis.NewAnalyzer(d, sf, pf, analysisType)
 
-	report := evaluation.NewAssessmentReport(ef)
+	report := evaluation.NewEvaluationReport(ef)
 
 	//manager := manager.NewAnalysisManager(analysisType)
-
+	evaluationType := utils.PortStatusEvaluation
 	for {
 		select {
 		case <-stop:
 			log.Info("terminating at user's signal...")
 			return
 		case <-time.After(time.Second * 5):
-			a.DiscoverNewPeers()
-			report.GenerateReport(a.Analyze())
+			a.DiscoverTargets()
+			analyzedTargets := a.AnalyzeNewlyDiscoveredTargets()
+			report.StartEvaluation(analyzedTargets, evaluationType)
 			report.DisplayToTable()
-			log.Info("Added targets", "targets", len(a.Targets))
+			log.Info("Added targets", "targets", len(a.DiscoveredTargets))
 		}
 	}
 }

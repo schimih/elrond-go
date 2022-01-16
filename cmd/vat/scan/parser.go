@@ -8,38 +8,38 @@ import (
 )
 
 type ParserData struct {
-	Input         [][]byte
-	ParsingResult []Peer
-	Grammar       utils.AnalysisType
+	Input           [][]byte
+	AnalyzedTargets []AnalyzedTarget
+	Grammar         utils.AnalysisType
 }
 
-func (p *ParserData) Parse() (parsingResults []Peer) {
-	nmapResultSlice := make([]*go_nmap.NmapRun, 0)
+func (p *ParserData) Parse() (parsingResults []AnalyzedTarget) {
+	slicedParserInput := make([]*go_nmap.NmapRun, 0)
 	for _, byteArray := range p.Input {
-		nmapResult, err := go_nmap.Parse(byteArray)
+		parsedNmapResult, err := go_nmap.Parse(byteArray)
 		if err != nil {
 			if !strings.Contains(err.Error(), "exit status 1") {
 				log.Error(err.Error())
 			}
 		}
-		nmapResultSlice = append(nmapResultSlice, nmapResult)
+		slicedParserInput = append(slicedParserInput, parsedNmapResult)
 	}
-	p.processInput(nmapResultSlice)
-	return p.ParsingResult
+	p.translateInput(slicedParserInput)
+	return p.AnalyzedTargets
 }
 
-func (p *ParserData) processInput(NmapScanResult []*go_nmap.NmapRun) {
+func (p *ParserData) translateInput(NmapScanResult []*go_nmap.NmapRun) {
 	for _, nmapRun := range NmapScanResult {
 		for hidx, host := range nmapRun.Hosts {
-			p.process(hidx, host)
+			p.translateTarget(hidx, host)
 		}
 	}
 }
 
-func (p *ParserData) process(id int, host go_nmap.Host) {
+func (p *ParserData) translateTarget(id int, host go_nmap.Host) {
 	pS := createPortSlice(host)
-	peer := NewPeer(uint(id), host.Addresses[0].Addr, pS.translatePortSlice(), host.Status.State, utils.SCANNED, p.Grammar)
-	p.ParsingResult = append(p.ParsingResult, peer)
+	analyzedTarget := NewAnalyzedTarget(uint(id), host.Addresses[0].Addr, pS.translatePortSlice(), host.Status.State, utils.SCANNED, p.Grammar)
+	p.AnalyzedTargets = append(p.AnalyzedTargets, analyzedTarget)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

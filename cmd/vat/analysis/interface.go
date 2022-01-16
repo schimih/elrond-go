@@ -6,7 +6,7 @@ import (
 )
 
 type Discoverer interface {
-	DiscoverNewTargets(existingTargets []Target) (targets []Target)
+	DiscoverNewTargets(existingTargets []DiscoveredTarget) (targets []DiscoveredTarget)
 	IsInterfaceNil() bool
 }
 

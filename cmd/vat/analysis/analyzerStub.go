@@ -1,7 +1,7 @@
 package analysis
 
 type AnalyzerStub struct {
-	AnalyzeCalled func(existingTargets []Target) (targets []Target)
+	AnalyzeCalled func(existingTargets []DiscoveredTarget) (targets []DiscoveredTarget)
 }
 
 func NewAnalyzerStub() (*AnalyzerStub, error) {

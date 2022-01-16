@@ -1,10 +1,12 @@
 package evaluation
 
-import "github.com/elrond-go/cmd/vat/utils"
-
-const (
-	initialRating = 100.0
+import (
+	"github.com/elrond-go/cmd/vat/scan"
+	"github.com/elrond-go/cmd/vat/utils"
 )
+
+// initial rating
+const initialRating = 100
 
 type EvaluatorFactory struct {
 }
@@ -13,12 +15,14 @@ func NewEvaluatorFactory() EvaluatorFactory {
 	return EvaluatorFactory{}
 }
 
-func (ef *EvaluatorFactory) CreateEvaluator(node Node, evaluationType utils.AnalysisType) Evaluator {
-	return &EvaluationResult{
-		Node:           node,
-		EvaluationType: evaluationType,
-		Score:          initialRating,
-		Judgment:       make([]string, 0),
+func (ef *EvaluatorFactory) CreateEvaluator(address string, ports []scan.Port, analysisType utils.AnalysisType) Evaluator {
+	return &EvaluationTarget{
+		Address:       address,
+		Ports:         ports,
+		Status:        string(utils.NEW),
+		Score:         initialRating,
+		SecurityLevel: utils.HIGH,
+		Judgements:    make([]string, 0),
 	}
 }
 

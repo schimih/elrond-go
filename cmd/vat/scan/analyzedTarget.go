@@ -4,7 +4,7 @@ import (
 	"github.com/elrond-go/cmd/vat/utils"
 )
 
-type Peer struct {
+type AnalyzedTarget struct {
 	ID           uint
 	Protocol     string
 	Address      string
@@ -15,9 +15,9 @@ type Peer struct {
 	AnalysisType utils.AnalysisType
 }
 
-func NewPeer(id uint, address string, ports []Port, targetStatus string, peerStatus utils.TargetStatus, analysisType utils.AnalysisType) Peer {
+func NewAnalyzedTarget(id uint, address string, ports []Port, targetStatus string, peerStatus utils.TargetStatus, analysisType utils.AnalysisType) AnalyzedTarget {
 
-	return Peer{
+	return AnalyzedTarget{
 		ID:           id,
 		Protocol:     "",
 		Address:      address,

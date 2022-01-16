@@ -13,6 +13,25 @@ const (
 	TCP_STANDARD       AnalysisType = 5
 )
 
+// EvaluationType represents the type of Evaluation that can be ran.
+//
+// For now ONLY "portStatusEvaluation" evaluation is implemented. Other implementations
+// like (fingerprint, dns, bruteforce etc) will follow.
+type EvaluationType int
+
+// EvaluationType represents the type of Evaluation that can be ran.
+//
+// For now ONLY "portStatusEvaluation" evaluation is implemented. Other implementations
+// like (fingerprint, dns, bruteforce etc) will follow.
+//
+// The evaluationType will be controlled by "manager".
+const (
+	NoEvaluation         EvaluationType = iota
+	PortStatusEvaluation EvaluationType = 1
+
+	// DNS etc
+)
+
 // PortStatus represents a port's status.
 type PortStatus string
 
@@ -25,14 +44,27 @@ const (
 	Unfiltered PortStatus = "unfiltered"
 )
 
+// PortType represents a port's type.
+type PortType int
+
+// Enumerates the different possible types of a port (elrond 37373-38383, web- 80,8080, ssh - 22, etc)
+const (
+	ElrondPort    PortType = iota
+	WebPort       PortType = 1
+	SshPort       PortType = 2
+	OutsideElrond PortType = 3
+	Unknown       PortType = 4
+)
+
 // TargetStatus represents a target's status
 type TargetStatus string
 
 // Enumerates the different possible state values of a target
 const (
-	NEW     TargetStatus = "NEW"
-	SCANNED TargetStatus = "SCANNED"
-	EXPIRED TargetStatus = "EXPIRED"
+	NEW       TargetStatus = "NEW"
+	SCANNED   TargetStatus = "SCANNED"
+	EXPIRED   TargetStatus = "EXPIRED"
+	EVALUATED TargetStatus = "EVALUATED"
 )
 
 // TargetStatus represents a scanner's status
@@ -64,4 +96,32 @@ const (
 	NMAP_TCP_SSH            NmapCommand = "-Pn -p22"
 	NMAP_TCP_FULL           NmapCommand = "-Pn -sS -A -p-"
 	NMAP_TCP_STANDARD       NmapCommand = "--randomize-hosts -Pn -sS -A -T4 -g53 --top-ports 1000"
+)
+
+type Risk int
+
+const (
+	HighRisk   Risk = -25
+	MediumRisk Risk = -10
+	SmallRisk  Risk = -5
+	NoRisk     Risk = 0
+)
+
+type Judgement string
+
+const (
+	JudgementSshBrutePassed Judgement = "HIGH RISK - Reason"
+	JudgementMediumRisk     Judgement = "MEDIUM RISK - Reason"
+	JudgementWeb            Judgement = "SMALL RISK - Reason"
+	JudgementSsh            Judgement = "SMALL RISK - Reason"
+	JudgementNoRisk         Judgement = "NO RISK - Reason"
+)
+
+type SecureLevel int
+
+const (
+	HIGH  SecureLevel = 0
+	MID   SecureLevel = 1
+	LOW   SecureLevel = 2
+	ALERT SecureLevel = 3
 )

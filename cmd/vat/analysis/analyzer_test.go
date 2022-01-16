@@ -19,7 +19,7 @@ type FakeParserFactory struct {
 type FakeScannerFactory struct {
 }
 
-func (fd *FakeDiscoverer) DiscoverNewTargets(existingTargets []Target) (targets []Target) {
+func (fd *FakeDiscoverer) DiscoverNewTargets(existingTargets []DiscoveredTarget) (targets []DiscoveredTarget) {
 	targets = existingTargets
 
 	return
@@ -32,16 +32,16 @@ func (sff *FakeScannerFactory) CreateScanner(target string, analysisType utils.A
 		Cmd:    "constructCmd(target, NMAP_TCP_SSH)"}
 }
 
-func (fpf *FakeParserFactory) CreateParser(input [][]byte, grammar int) scan.Parser {
+func (fpf *FakeParserFactory) CreateParser(input [][]byte, grammar utils.AnalysisType) scan.Parser {
 	return &scan.ParserData{
-		Input:         input,
-		ParsingResult: make([]scan.Peer, 0),
-		Grammar:       grammar,
+		Input:           input,
+		AnalyzedTargets: make([]scan.AnalyzedTarget, 0),
+		Grammar:         grammar,
 	}
 }
 
 func TestNewAnalyzer(t *testing.T) {
-	analysisType := 0
+	analysisType := utils.TCP_ELROND
 	fd := &FakeDiscoverer{}
 	sff := &FakeScannerFactory{}
 	fpf := &FakeParserFactory{}
@@ -51,7 +51,7 @@ func TestNewAnalyzer(t *testing.T) {
 }
 
 func TestNewAnalyzer_DiscovererNilCheck(t *testing.T) {
-	analysisType := 0
+	analysisType := utils.TCP_ELROND
 	sff := &FakeScannerFactory{}
 	fpf := &FakeParserFactory{}
 	na, err := NewAnalyzer(nil, sff, fpf, analysisType)
@@ -61,7 +61,7 @@ func TestNewAnalyzer_DiscovererNilCheck(t *testing.T) {
 }
 
 func TestNewAnalyzer_ScannerFactoryNilCheck(t *testing.T) {
-	analysisType := 0
+	analysisType := utils.TCP_ELROND
 	fd := &FakeDiscoverer{}
 	//sff := &FakeScannerFactory{}
 	fpf := &FakeParserFactory{}
@@ -72,7 +72,7 @@ func TestNewAnalyzer_ScannerFactoryNilCheck(t *testing.T) {
 }
 
 func TestNewAnalyzer_ParserFactoryNilCheck(t *testing.T) {
-	analysisType := 0
+	analysisType := utils.TCP_ELROND
 	fd := &FakeDiscoverer{}
 	sff := &FakeScannerFactory{}
 	//fpf := &FakeParserFactory{}
@@ -83,17 +83,17 @@ func TestNewAnalyzer_ParserFactoryNilCheck(t *testing.T) {
 }
 
 func TestAnalyzer_DiscoverNewPeers(t *testing.T) {
-	analysisType := 0
+	analysisType := utils.TCP_ELROND
 	discovererStub := NewDiscovererStub()
 	sff := &FakeScannerFactory{}
 	fpf := &FakeParserFactory{}
 	na, _ := NewAnalyzer(discovererStub, sff, fpf, analysisType)
-	discovererStub.DiscoverNewTargetsCalled = func(existingTargets []Target) (targets []Target) {
-		return make([]Target, 2)
+	discovererStub.DiscoverNewTargetsCalled = func(existingTargets []DiscoveredTarget) (targets []DiscoveredTarget) {
+		return make([]DiscoveredTarget, 2)
 	}
-	na.DiscoverNewPeers()
+	na.DiscoverTargets()
 
-	require.Equal(t, 2, len(na.Targets))
+	require.Equal(t, 2, len(na.DiscoveredTargets))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

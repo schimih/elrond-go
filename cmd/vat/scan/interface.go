@@ -6,6 +6,6 @@ type Scanner interface {
 }
 
 type Parser interface {
-	Parse() (parsingResults []Peer)
+	Parse() (parsingResults []AnalyzedTarget)
 	IsInterfaceNil() bool
 }

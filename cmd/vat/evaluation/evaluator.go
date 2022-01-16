@@ -3,41 +3,18 @@ package evaluation
 import (
 	"fmt"
 
+	"github.com/elrond-go/cmd/vat/scan"
 	"github.com/elrond-go/cmd/vat/utils"
 )
 
-// SIMPLE Evaluation -> evaluate based on port's status
-// COMPLEX Evaluation -> after interpreting a port's status -> do other actions-> ex. fingerprint, bruteforce, dns, domain, etc
-const (
-	SIMPLE = iota
-	COMPLEX
-)
-
-type EvaluationResult struct {
-	Node           Node
-	EvaluationType utils.AnalysisType
-	Score          score
-	SecurityLevel  securityLevel
-	Judgment       []string
+type EvaluationTarget struct {
+	Address       string
+	Ports         []scan.Port
+	Status        string
+	Score         int
+	SecurityLevel utils.SecureLevel
+	Judgements    []string
 }
-
-type score int
-
-const (
-	highRisk   score = -25
-	mediumRisk score = -10
-	smallRisk  score = -5
-	noRisk     score = 0
-)
-
-type securityLevel int
-
-const (
-	HIGH  securityLevel = 0
-	MID   securityLevel = 1
-	LOW   securityLevel = 2
-	ALERT securityLevel = 3
-)
 
 const (
 	TCP_ELROND = iota
@@ -49,87 +26,37 @@ const (
 	UNKOWN
 )
 
-func (e *EvaluationResult) Evaluate(node Node) EvaluationResult {
-	for _, port := range node.Ports {
+func (eT *EvaluationTarget) Evaluate() EvaluationTarget {
+	deduction := 0
+	for _, port := range eT.Ports {
 		if port.State == utils.Open {
-			e.deduct(port.Number)
+			deduction += int(port.RiskValue)
+			eT.addJudgement(port)
 		}
 	}
 
-	return *e
+	eT.Score -= deduction
+	eT.SecurityLevel = eT.calculateSecurityLevel()
+	eT.Status = string(utils.EVALUATED)
+	return *eT
 }
 
-func (e *EvaluationResult) deduct(portNumber int) {
-	switch getKindByPort(portNumber) {
-	case TCP_ELROND:
-		e.processEvaluation(TCP_ELROND, portNumber)
-	case TCP_WEB:
-		e.processEvaluation(TCP_WEB, portNumber)
-	case TCP_SSH:
-		e.processEvaluation(TCP_SSH, portNumber)
-	case TCP_STANDARD:
-		e.processEvaluation(TCP_STANDARD, portNumber)
-	default:
-		return
+func (eT *EvaluationTarget) addJudgement(port scan.Port) {
+	eT.Judgements = append(eT.Judgements, fmt.Sprintf("%s - %d points deducted", port.RiskReason, port.RiskValue))
+}
+
+func (eT *EvaluationTarget) calculateSecurityLevel() utils.SecureLevel {
+	if eT.Score >= 80 {
+		return utils.HIGH
+	} else if (eT.Score >= 60) && (eT.Score < 80) {
+		return utils.MID
+	} else if (eT.Score >= 40) && (eT.Score < 60) {
+		return utils.LOW
 	}
-}
-
-func getKindByPort(portNumber int) int {
-	if isPortInRange(portNumber, 37373, 38383) {
-		return TCP_ELROND
-	} else if (portNumber == 80) || (portNumber == 8080) {
-		return TCP_WEB
-	} else if portNumber == 22 {
-		return TCP_SSH
-	} else if isPortInRange(portNumber, 0, 37372) {
-		return TCP_STANDARD
-	} else if isPortInRange(portNumber, 38384, 65535) {
-		return TCP_STANDARD
-	} else {
-		return 0
-	}
-}
-
-func isPortInRange(port int, low int, high int) bool {
-	if (port > low) && (port < high) {
-		return true
-	}
-	return false
-}
-
-func (e *EvaluationResult) processEvaluation(portType int, portNumber int) {
-	e.Judgment = append(e.Judgment, fmt.Sprintf("NO RISK - Elrond Port Open - 0 points deducted", "port", portNumber))
-	e.Score += evaluateRisk(portType)
-	e.SecurityLevel = calculateSecurityLevel(e.Score)
-}
-
-func evaluateRisk(portType int) score {
-	switch portType {
-	case TCP_ELROND:
-		return noRisk
-	case TCP_WEB:
-		return mediumRisk
-	case TCP_SSH:
-		return mediumRisk
-	case TCP_STANDARD:
-		return smallRisk
-	default:
-		return noRisk
-	}
-}
-
-func calculateSecurityLevel(score score) securityLevel {
-	if score >= 80 {
-		return HIGH
-	} else if (score >= 60) && (score < 80) {
-		return MID
-	} else if (score >= 40) && (score < 60) {
-		return LOW
-	}
-	return ALERT
+	return utils.ALERT
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (e *EvaluationResult) IsInterfaceNil() bool {
+func (e *EvaluationTarget) IsInterfaceNil() bool {
 	return e == nil
 }

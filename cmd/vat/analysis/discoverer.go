@@ -17,7 +17,7 @@ func NewP2pDiscoverer(messenger p2p.Messenger) *P2pDiscoverer {
 	}
 }
 
-func (d *P2pDiscoverer) DiscoverNewTargets(targetsDiscoveredLastRound []Target) (discoveredTargets []Target) {
+func (d *P2pDiscoverer) DiscoverNewTargets(targetsDiscoveredLastRound []DiscoveredTarget) (discoveredTargets []DiscoveredTarget) {
 	discoveredTargets = targetsDiscoveredLastRound
 	currentlyConnectedTargets := d.messenger.ConnectedAddresses()
 

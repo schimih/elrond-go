@@ -6,6 +6,6 @@ package evaluation
 // }
 
 type Evaluator interface {
-	Evaluate(node Node) EvaluationResult
+	Evaluate() EvaluationTarget
 	IsInterfaceNil() bool
 }

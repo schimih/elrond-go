@@ -20,11 +20,11 @@ const (
 )
 
 // Status returns the status of a target.
-func (t Target) ActualStatus() TargetStatus {
+func (t DiscoveredTarget) ActualStatus() TargetStatus {
 	return TargetStatus(t.Status)
 }
 
-type Target struct {
+type DiscoveredTarget struct {
 	ID             uint
 	Protocol       string
 	Address        string
@@ -32,8 +32,8 @@ type Target struct {
 	Status         utils.TargetStatus
 }
 
-func MakeTarget(id uint, protocol string, address string, connectionPort string, status utils.TargetStatus) Target {
-	return Target{
+func MakeTarget(id uint, protocol string, address string, connectionPort string, status utils.TargetStatus) DiscoveredTarget {
+	return DiscoveredTarget{
 		ID:             id,
 		Protocol:       protocol,
 		Address:        address,
@@ -42,7 +42,7 @@ func MakeTarget(id uint, protocol string, address string, connectionPort string,
 	}
 }
 
-func containsTarget(haystack []Target, needle Target) bool {
+func containsTarget(haystack []DiscoveredTarget, needle DiscoveredTarget) bool {
 	for _, target := range haystack {
 		if target.Address == needle.Address {
 			return true

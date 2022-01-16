@@ -11,12 +11,12 @@ import (
 )
 
 type Analyzer struct {
-	Targets        []Target
-	discoverer     Discoverer
-	scanner        ScannerFactory
-	parser         ParserFactory
-	AnalysisType   utils.AnalysisType
-	ManagerCommand int
+	DiscoveredTargets []DiscoveredTarget
+	discoverer        Discoverer
+	scanner           ScannerFactory
+	parser            ParserFactory
+	AnalysisType      utils.AnalysisType
+	ManagerCommand    int
 }
 
 var log = logger.GetOrCreate("vat")
@@ -38,18 +38,18 @@ func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory, ana
 	a.discoverer = discoverer
 	a.AnalysisType = analysisType
 	a.ManagerCommand = NO_COMMAND
-	a.Targets = make([]Target, 0)
+	a.DiscoveredTargets = make([]DiscoveredTarget, 0)
 	a.scanner = sf
 	a.parser = pf
 
 	return a, nil
 }
 
-func (a *Analyzer) DiscoverNewPeers() {
-	a.Targets = a.discoverer.DiscoverNewTargets(a.Targets)
+func (a *Analyzer) DiscoverTargets() {
+	a.DiscoveredTargets = a.discoverer.DiscoverNewTargets(a.DiscoveredTargets)
 }
 
-func (a *Analyzer) Analyze() (scanResults []scan.Peer) {
+func (a *Analyzer) AnalyzeNewlyDiscoveredTargets() (scanResults []scan.AnalyzedTarget) {
 	nmapScanResults := a.deployAnalysisWorkers()
 	p := a.parser.CreateParser(nmapScanResults, a.AnalysisType)
 	return p.Parse()
@@ -58,7 +58,7 @@ func (a *Analyzer) Analyze() (scanResults []scan.Peer) {
 func (a *Analyzer) deployAnalysisWorkers() (work [][]byte) {
 	nmapScanResults := make([][]byte, 0)
 	var wg sync.WaitGroup
-	for _, h := range a.Targets {
+	for _, h := range a.DiscoveredTargets {
 		if (h.ActualStatus() == New) || (h.ActualStatus() == Expired) {
 			wg.Add(1)
 			temp := h
@@ -72,7 +72,7 @@ func (a *Analyzer) deployAnalysisWorkers() (work [][]byte) {
 	return nmapScanResults
 }
 
-func (a *Analyzer) worker(h *Target) (scanRawResult []byte) {
+func (a *Analyzer) worker(h *DiscoveredTarget) (scanRawResult []byte) {
 	s := a.scanner.CreateScanner(h.Address, utils.AnalysisType(a.AnalysisType))
 
 	log.Info("Starting scan for:", "address", h.Address)
@@ -84,9 +84,9 @@ func (a *Analyzer) worker(h *Target) (scanRawResult []byte) {
 }
 
 func (a *Analyzer) changeTargetStatus(address string, status utils.TargetStatus) string {
-	for idx, _ := range a.Targets {
-		if address == a.Targets[idx].Address {
-			a.Targets[idx].Status = status
+	for idx, _ := range a.DiscoveredTargets {
+		if address == a.DiscoveredTargets[idx].Address {
+			a.DiscoveredTargets[idx].Status = status
 			break
 		}
 	}
