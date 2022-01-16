@@ -3,14 +3,14 @@ package scan
 import (
 	"strings"
 
-	"github.com/elrond-go/cmd/vat/core"
+	"github.com/elrond-go/cmd/vat/utils"
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 
 type ParserData struct {
 	Input         [][]byte
 	ParsingResult []Peer
-	Grammar       int
+	Grammar       utils.AnalysisType
 }
 
 func (p *ParserData) Parse() (parsingResults []Peer) {
@@ -38,7 +38,7 @@ func (p *ParserData) processInput(NmapScanResult []*go_nmap.NmapRun) {
 
 func (p *ParserData) process(id int, host go_nmap.Host) {
 	pS := createPortSlice(host)
-	peer := NewPeer(uint(id), host.Addresses[0].Addr, pS.translatePortSlice(), host.Status.State, core.SCANNED, p.Grammar)
+	peer := NewPeer(uint(id), host.Addresses[0].Addr, pS.translatePortSlice(), host.Status.State, utils.SCANNED, p.Grammar)
 	p.ParsingResult = append(p.ParsingResult, peer)
 }
 

@@ -6,8 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/elrond-go/cmd/vat/core"
-	"github.com/elrond-go/cmd/vat/core/scan"
+	"github.com/elrond-go/cmd/vat/scan"
+	"github.com/elrond-go/cmd/vat/utils"
 )
 
 type Analyzer struct {
@@ -15,13 +15,13 @@ type Analyzer struct {
 	discoverer     Discoverer
 	scanner        ScannerFactory
 	parser         ParserFactory
-	AnalysisType   int
+	AnalysisType   utils.AnalysisType
 	ManagerCommand int
 }
 
 var log = logger.GetOrCreate("vat")
 
-func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory, analysisType int) (*Analyzer, error) {
+func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory, analysisType utils.AnalysisType) (*Analyzer, error) {
 	if check.IfNil(discoverer) {
 		return nil, fmt.Errorf("Discoverer needed")
 	}
@@ -73,17 +73,17 @@ func (a *Analyzer) deployAnalysisWorkers() (work [][]byte) {
 }
 
 func (a *Analyzer) worker(h *Target) (scanRawResult []byte) {
-	s := a.scanner.CreateScanner(h.Address, core.AnalysisType(a.AnalysisType))
+	s := a.scanner.CreateScanner(h.Address, utils.AnalysisType(a.AnalysisType))
 
 	log.Info("Starting scan for:", "address", h.Address)
 	// Run the scan
 	rawResult := s.Scan()
 
-	log.Info("Scanning done for target:", "address", a.changeTargetStatus(h.Address, core.SCANNED))
+	log.Info("Scanning done for target:", "address", a.changeTargetStatus(h.Address, utils.SCANNED))
 	return rawResult
 }
 
-func (a *Analyzer) changeTargetStatus(address string, status core.TargetStatus) string {
+func (a *Analyzer) changeTargetStatus(address string, status utils.TargetStatus) string {
 	for idx, _ := range a.Targets {
 		if address == a.Targets[idx].Address {
 			a.Targets[idx].Status = status

@@ -1,7 +1,7 @@
 package scan
 
 import (
-	"github.com/elrond-go/cmd/vat/core"
+	"github.com/elrond-go/cmd/vat/utils"
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 
@@ -9,7 +9,7 @@ type Port struct {
 	ID       uint
 	Number   int
 	Protocol string
-	State    core.PortStatus
+	State    utils.PortStatus
 	Owner    string
 }
 
@@ -21,7 +21,7 @@ type Ports struct {
 func NewPort(id uint,
 	number int,
 	protocol string,
-	state core.PortStatus,
+	state utils.PortStatus,
 	owner string) Port {
 
 	return Port{
@@ -42,12 +42,12 @@ func createPortSlice(host go_nmap.Host) Ports {
 
 func (ps *Ports) translatePortSlice() (portSlice []Port) {
 	for idx, port := range ps.Host.Ports {
-		ps.Ports = append(ps.Ports, NewPort(uint(idx), port.PortId, port.Protocol, core.PortStatus(port.State.State), port.Owner.Name))
+		ps.Ports = append(ps.Ports, NewPort(uint(idx), port.PortId, port.Protocol, utils.PortStatus(port.State.State), port.Owner.Name))
 	}
 	return ps.Ports
 }
 
 // Status returns the status of a port.
-func (p Port) Status() core.PortStatus {
-	return core.PortStatus(p.State)
+func (p Port) Status() utils.PortStatus {
+	return utils.PortStatus(p.State)
 }

@@ -1,4 +1,4 @@
-package vat
+package utils
 
 // AnalysisType represents the type of Analysis to be ran
 type AnalysisType int

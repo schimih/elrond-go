@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/elrond-go/cmd/vat/core"
-	"github.com/elrond-go/cmd/vat/core/scan"
+	"github.com/elrond-go/cmd/vat/scan"
+	"github.com/elrond-go/cmd/vat/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,10 +25,10 @@ func (fd *FakeDiscoverer) DiscoverNewTargets(existingTargets []Target) (targets 
 	return
 }
 
-func (sff *FakeScannerFactory) CreateScanner(target string, analysisType core.AnalysisType) (Scanner scan.Scanner) {
+func (sff *FakeScannerFactory) CreateScanner(target string, analysisType utils.AnalysisType) (Scanner scan.Scanner) {
 	return &scan.ArgNmapScanner{Name: "TCP-SSH",
 		Target: target,
-		Status: core.NOT_STARTED,
+		Status: utils.NOT_STARTED,
 		Cmd:    "constructCmd(target, NMAP_TCP_SSH)"}
 }
 

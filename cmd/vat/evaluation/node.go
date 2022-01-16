@@ -1,6 +1,6 @@
 package evaluation
 
-import "github.com/elrond-go/cmd/vat/core/scan"
+import "github.com/elrond-go/cmd/vat/scan"
 
 type NodeStatus string
 

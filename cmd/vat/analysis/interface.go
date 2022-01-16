@@ -1,8 +1,8 @@
 package analysis
 
 import (
-	"github.com/elrond-go/cmd/vat/core"
-	"github.com/elrond-go/cmd/vat/core/scan"
+	"github.com/elrond-go/cmd/vat/scan"
+	"github.com/elrond-go/cmd/vat/utils"
 )
 
 type Discoverer interface {
@@ -11,10 +11,10 @@ type Discoverer interface {
 }
 
 type ScannerFactory interface {
-	CreateScanner(target string, analysisType core.AnalysisType) scan.Scanner
+	CreateScanner(target string, analysisType utils.AnalysisType) scan.Scanner
 	IsInterfaceNil() bool
 }
 type ParserFactory interface {
-	CreateParser(input [][]byte, grammar int) scan.Parser
+	CreateParser(input [][]byte, grammar utils.AnalysisType) scan.Parser
 	IsInterfaceNil() bool
 }

@@ -3,7 +3,7 @@ package evaluation
 import (
 	"fmt"
 
-	"github.com/elrond-go/cmd/vat/core"
+	"github.com/elrond-go/cmd/vat/utils"
 )
 
 // SIMPLE Evaluation -> evaluate based on port's status
@@ -15,7 +15,7 @@ const (
 
 type EvaluationResult struct {
 	Node           Node
-	EvaluationType int
+	EvaluationType utils.AnalysisType
 	Score          score
 	SecurityLevel  securityLevel
 	Judgment       []string
@@ -51,7 +51,7 @@ const (
 
 func (e *EvaluationResult) Evaluate(node Node) EvaluationResult {
 	for _, port := range node.Ports {
-		if port.State == core.Open {
+		if port.State == utils.Open {
 			e.deduct(port.Number)
 		}
 	}

@@ -7,7 +7,6 @@ import (
 	"syscall"
 	"time"
 
-	//"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
@@ -17,11 +16,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-
-	//"github.com/elrond-go/cmd/vat/core"
-	"github.com/elrond-go/cmd/vat/core/analysis"
-	"github.com/elrond-go/cmd/vat/core/evaluation"
-	"github.com/elrond-go/cmd/vat/core/scan/factory"
+	"github.com/elrond-go/cmd/vat/analysis"
+	"github.com/elrond-go/cmd/vat/evaluation"
+	"github.com/elrond-go/cmd/vat/scan/factory"
+	"github.com/elrond-go/cmd/vat/utils"
 	"github.com/urfave/cli"
 )
 
@@ -115,13 +113,13 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info("Analysis is now running")
-	AnalysisType := 1
+	AnalysisType := utils.TCP_WEB
 	mainLoop(messenger, sigs, AnalysisType)
 
 	return nil
 }
 
-func mainLoop(messenger p2p.Messenger, stop chan os.Signal, analysisType int) {
+func mainLoop(messenger p2p.Messenger, stop chan os.Signal, analysisType utils.AnalysisType) {
 	sf := factory.NewNmapScannerFactory()
 	pf := factory.NewParserFactory()
 	ef := evaluation.NewEvaluatorFactory()

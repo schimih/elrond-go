@@ -4,7 +4,7 @@ import (
 	"os/exec"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/elrond-go/cmd/vat/core"
+	"github.com/elrond-go/cmd/vat/utils"
 )
 
 var log = logger.GetOrCreate("vat")
@@ -12,22 +12,22 @@ var log = logger.GetOrCreate("vat")
 type ArgNmapScanner struct {
 	Name   string
 	Target string
-	Status core.ScannerStatus
+	Status utils.ScannerStatus
 	Cmd    string
 }
 
 type nmapScanner struct {
 	name   string
 	target string
-	status core.ScannerStatus
+	status utils.ScannerStatus
 	cmd    string
 }
 
 func (s *ArgNmapScanner) preScan() {
-	s.Status = core.IN_PROGRESS
+	s.Status = utils.IN_PROGRESS
 }
 func (s *ArgNmapScanner) postScan() {
-	s.Status = core.FINISHED
+	s.Status = utils.FINISHED
 }
 
 // Run nmap scan
@@ -36,7 +36,7 @@ func (s *ArgNmapScanner) Scan() (res []byte) {
 	// Run nmap
 	res, err := shellCmd(s.Cmd)
 	if err != nil {
-		s.Status = core.FAILED
+		s.Status = utils.FAILED
 	}
 
 	s.postScan()
