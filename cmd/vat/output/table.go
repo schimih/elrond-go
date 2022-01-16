@@ -1,65 +1,31 @@
-package evaluation
+package output
 
 import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/elrond-go/cmd/vat/scan"
+	"github.com/elrond-go/cmd/vat/evaluation"
 	"github.com/elrond-go/cmd/vat/utils"
 )
 
 var log = logger.GetOrCreate("vat")
 
-type EvaluationReport struct {
-	evaluatorFactory  EvaluatorFactory
-	EvaluationTargets []EvaluationTarget
-	evaluationType    utils.EvaluationType
-}
-
-func NewEvaluationReport(ef EvaluatorFactory) EvaluationReport {
-	return EvaluationReport{
-		evaluatorFactory:  ef,
-		EvaluationTargets: make([]EvaluationTarget, 0),
-		evaluationType:    utils.NoEvaluation,
-	}
-}
-
-func (eR *EvaluationReport) StartEvaluation(scanResults []scan.ScannedTarget, evaluationType utils.EvaluationType) {
-	eR.evaluationType = evaluationType
-	switch evaluationType {
-	case utils.PortStatusEvaluation:
-		eR.evaluatePortStatus(scanResults)
-	case utils.NoEvaluation:
-		log.Error("No Evaluation Type given - Please choose evaluation type")
-	default:
-		log.Error("Unknown Evaluation Type")
-	}
-}
-
-func (eR *EvaluationReport) evaluatePortStatus(scanResults []scan.ScannedTarget) {
-	for _, analyzedTarget := range scanResults {
-		if !find(analyzedTarget.Address, eR.EvaluationTargets) {
-			eR.populateReport(analyzedTarget)
-		}
-	}
-}
-
-func (eR *EvaluationReport) populateReport(peer scan.ScannedTarget) {
-	evaluator := eR.evaluatorFactory.CreateEvaluator(peer.Address, peer.Ports, peer.AnalysisType)
-	eR.EvaluationTargets = append(eR.EvaluationTargets, evaluator.Evaluate())
+type TableFormatter struct {
+	OutputType       utils.OutputType
+	EvaluationReport []evaluation.EvaluationTarget
 }
 
 // to be refactored
-func (eR *EvaluationReport) DisplayToTable() {
+func (tF *TableFormatter) GetOutput() {
 	header := []string{"Index", "Address", "Port", "Status", "Service"}
-	peersDB := eR.EvaluationTargets
+	peersDB := tF.EvaluationReport
 	if len(peersDB) == 0 {
 		log.Info("No peers in DB. First load a json or run discovery!")
 		return
 	}
-	dataLines := make([]*display.LineData, 0, len(eR.EvaluationTargets))
-	for idx, evaluationResult := range eR.EvaluationTargets {
+	dataLines := make([]*display.LineData, 0, len(tF.EvaluationReport))
+	for idx, evaluationResult := range tF.EvaluationReport {
 		rAddress := evaluationResult.Address
 		if len(evaluationResult.Ports) != 0 {
 			for jdx, tPort := range evaluationResult.Ports {
@@ -89,7 +55,7 @@ func (eR *EvaluationReport) DisplayToTable() {
 			dataLines = append(dataLines, lines)
 		}
 
-		Score := fmt.Sprintf("%d", eR.EvaluationTargets[idx].Score)
+		Score := fmt.Sprintf("%d", tF.EvaluationReport[idx].Score)
 		//totalHorizontalLine := (temp == len(dataLines)+1)
 		totalline := display.NewLineData(true, []string{">>>>>", ">>>>>>>>>>>", ">>>>>", "RATING", Score})
 		dataLines = append(dataLines, totalline)
@@ -99,11 +65,7 @@ func (eR *EvaluationReport) DisplayToTable() {
 	fmt.Println(table)
 }
 
-func find(needle string, haystack []EvaluationTarget) bool {
-	for _, EvaluationTarget := range haystack {
-		if needle == EvaluationTarget.Address {
-			return true
-		}
-	}
-	return false
+// IsInterfaceNil returns true if there is no value under the interface
+func (tF *TableFormatter) IsInterfaceNil() bool {
+	return tF == nil
 }

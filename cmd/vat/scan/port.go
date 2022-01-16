@@ -56,7 +56,7 @@ func (ps *Ports) translatePortSlice() (portSlice []Port) {
 }
 
 // Type returns the Type of a port.
-func (p Port) getTypeAndImportance() {
+func (p *Port) getTypeAndImportance() {
 	if p.isPortInRange(37373, 38383) {
 		p.Type = utils.ElrondPort
 		p.RiskValue = utils.NoRisk
@@ -76,7 +76,7 @@ func (p Port) getTypeAndImportance() {
 	}
 }
 
-func (p Port) isPortInRange(low int, high int) bool {
+func (p *Port) isPortInRange(low int, high int) bool {
 	if (p.Number > low) && (p.Number < high) {
 		return true
 	}

@@ -15,7 +15,7 @@ func NewEvaluatorFactory() EvaluatorFactory {
 	return EvaluatorFactory{}
 }
 
-func (ef *EvaluatorFactory) CreateEvaluator(address string, ports []scan.Port, analysisType utils.AnalysisType) Evaluator {
+func (eF *EvaluatorFactory) CreateEvaluator(address string, ports []scan.Port, analysisType utils.AnalysisType) Evaluator {
 	return &EvaluationTarget{
 		Address:       address,
 		Ports:         ports,
@@ -27,6 +27,6 @@ func (ef *EvaluatorFactory) CreateEvaluator(address string, ports []scan.Port, a
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ef *EvaluatorFactory) IsInterfaceNil() bool {
-	return ef == nil
+func (eF *EvaluatorFactory) IsInterfaceNil() bool {
+	return eF == nil
 }

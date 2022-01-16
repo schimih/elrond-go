@@ -35,7 +35,7 @@ func (sff *FakeScannerFactory) CreateScanner(target string, analysisType utils.A
 func (fpf *FakeParserFactory) CreateParser(input [][]byte, grammar utils.AnalysisType) scan.Parser {
 	return &scan.ParserData{
 		Input:           input,
-		AnalyzedTargets: make([]scan.AnalyzedTarget, 0),
+		AnalyzedTargets: make([]scan.ScannedTarget, 0),
 		Grammar:         grammar,
 	}
 }

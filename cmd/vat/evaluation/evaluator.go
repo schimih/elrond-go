@@ -16,16 +16,6 @@ type EvaluationTarget struct {
 	Judgements    []string
 }
 
-const (
-	TCP_ELROND = iota
-	TCP_OUTSIDE_ELROND
-	TCP_WEB
-	TCP_SSH
-	TCP_FULL
-	TCP_STANDARD
-	UNKOWN
-)
-
 func (eT *EvaluationTarget) Evaluate() EvaluationTarget {
 	deduction := 0
 	for _, port := range eT.Ports {
@@ -35,7 +25,7 @@ func (eT *EvaluationTarget) Evaluate() EvaluationTarget {
 		}
 	}
 
-	eT.Score -= deduction
+	eT.Score += deduction
 	eT.SecurityLevel = eT.calculateSecurityLevel()
 	eT.Status = string(utils.EVALUATED)
 	return *eT
@@ -57,6 +47,6 @@ func (eT *EvaluationTarget) calculateSecurityLevel() utils.SecureLevel {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (e *EvaluationTarget) IsInterfaceNil() bool {
-	return e == nil
+func (eT *EvaluationTarget) IsInterfaceNil() bool {
+	return eT == nil
 }

@@ -15,7 +15,7 @@ func NewParserFactory() *ParserFactory {
 func (pf *ParserFactory) CreateParser(input [][]byte, grammar utils.AnalysisType) scan.Parser {
 	return &scan.ParserData{
 		Input:           input,
-		AnalyzedTargets: make([]scan.AnalyzedTarget, 0),
+		AnalyzedTargets: make([]scan.ScannedTarget, 0),
 		Grammar:         grammar,
 	}
 }

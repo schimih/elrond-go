@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/elrond-go/cmd/vat/analysis"
 	"github.com/elrond-go/cmd/vat/evaluation"
+	"github.com/elrond-go/cmd/vat/output"
 	"github.com/elrond-go/cmd/vat/scan/factory"
 	"github.com/elrond-go/cmd/vat/utils"
 	"github.com/urfave/cli"
@@ -127,6 +128,7 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal, analysisType utils.A
 	a, _ := analysis.NewAnalyzer(d, sf, pf, analysisType)
 
 	report := evaluation.NewEvaluationReport(ef)
+	formatter := output.CreateFormatter(utils.Table)
 
 	//manager := manager.NewAnalysisManager(analysisType)
 	evaluationType := utils.PortStatusEvaluation
@@ -139,7 +141,7 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal, analysisType utils.A
 			a.DiscoverTargets()
 			analyzedTargets := a.AnalyzeNewlyDiscoveredTargets()
 			report.StartEvaluation(analyzedTargets, evaluationType)
-			report.DisplayToTable()
+			formatter.GetOutput()
 			log.Info("Added targets", "targets", len(a.DiscoveredTargets))
 		}
 	}

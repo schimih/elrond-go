@@ -1,10 +1,10 @@
 package process
 
 import (
+	"crypto"
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"

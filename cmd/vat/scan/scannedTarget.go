@@ -4,7 +4,7 @@ import (
 	"github.com/elrond-go/cmd/vat/utils"
 )
 
-type AnalyzedTarget struct {
+type ScannedTarget struct {
 	ID           uint
 	Protocol     string
 	Address      string
@@ -15,9 +15,9 @@ type AnalyzedTarget struct {
 	AnalysisType utils.AnalysisType
 }
 
-func NewAnalyzedTarget(id uint, address string, ports []Port, targetStatus string, peerStatus utils.TargetStatus, analysisType utils.AnalysisType) AnalyzedTarget {
+func NewScannedTarget(id uint, address string, ports []Port, targetStatus string, peerStatus utils.TargetStatus, analysisType utils.AnalysisType) ScannedTarget {
 
-	return AnalyzedTarget{
+	return ScannedTarget{
 		ID:           id,
 		Protocol:     "",
 		Address:      address,

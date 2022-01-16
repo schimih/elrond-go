@@ -49,7 +49,7 @@ func (a *Analyzer) DiscoverTargets() {
 	a.DiscoveredTargets = a.discoverer.DiscoverNewTargets(a.DiscoveredTargets)
 }
 
-func (a *Analyzer) AnalyzeNewlyDiscoveredTargets() (scanResults []scan.AnalyzedTarget) {
+func (a *Analyzer) AnalyzeNewlyDiscoveredTargets() (scanResults []scan.ScannedTarget) {
 	nmapScanResults := a.deployAnalysisWorkers()
 	p := a.parser.CreateParser(nmapScanResults, a.AnalysisType)
 	return p.Parse()

@@ -125,3 +125,14 @@ const (
 	LOW   SecureLevel = 2
 	ALERT SecureLevel = 3
 )
+
+type OutputType int
+
+const (
+	Table OutputType = 0
+	JSON  OutputType = 1
+	XML   OutputType = 2
+	GIN   OutputType = 3
+)
+
+const JsonFilePath = "./cmd/vat/peers.json"
