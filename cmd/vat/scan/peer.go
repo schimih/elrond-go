@@ -1,5 +1,7 @@
 package scan
 
+import "github.com/elrond-go/cmd/vat/core"
+
 type Peer struct {
 	ID           uint
 	Protocol     string
@@ -7,11 +9,11 @@ type Peer struct {
 	Standard     string
 	Ports        []Port
 	Architecture string
-	Status       TargetStatus
+	Status       core.TargetStatus
 	AnalysisType int
 }
 
-func NewPeer(id uint, address string, ports []Port, targetStatus string, peerStatus TargetStatus, analysisType int) Peer {
+func NewPeer(id uint, address string, ports []Port, targetStatus string, peerStatus core.TargetStatus, analysisType int) Peer {
 
 	return Peer{
 		ID:           id,

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/core/scan"
 )
 
@@ -51,7 +52,7 @@ func (ar *AssessmentReport) DisplayToTable() {
 			for jdx, tPort := range p.Node.Ports {
 				if jdx == 0 {
 					rPort := fmt.Sprintf("%d", tPort.Number)
-					rStatus := tPort.State
+					rStatus := string(core.PortStatus(tPort.State))
 					rProtocol := tPort.Protocol
 					rIndex := fmt.Sprintf("%d", idx)
 					horizontalLineAfter := jdx == len(p.Node.Ports)-1
@@ -62,7 +63,7 @@ func (ar *AssessmentReport) DisplayToTable() {
 					dataLines = append(dataLines, lines)
 				} else {
 					rPort := fmt.Sprintf("%d", tPort.Number)
-					rStatus := tPort.State
+					rStatus := string(core.PortStatus(tPort.State))
 					rProtocol := tPort.Protocol
 					horizontalLineAfter := jdx == len(p.Node.Ports)-1
 					lines := display.NewLineData(horizontalLineAfter, []string{"", "", rPort, rStatus, rProtocol})

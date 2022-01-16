@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/core/scan"
 )
 
@@ -72,22 +73,17 @@ func (a *Analyzer) deployAnalysisWorkers() (work [][]byte) {
 }
 
 func (a *Analyzer) worker(h *Target) (scanRawResult []byte) {
-	s := a.scanner.CreateScanner(h.Address, a.AnalysisType)
+	s := a.scanner.CreateScanner(h.Address, core.AnalysisType(a.AnalysisType))
 
 	log.Info("Starting scan for:", "address", h.Address)
 	// Run the scan
 	rawResult := s.Scan()
 
-	log.Info("Scanning done for target:", "address", a.changeTargetStatus(h.Address, scan.SCANNED))
+	log.Info("Scanning done for target:", "address", a.changeTargetStatus(h.Address, core.SCANNED))
 	return rawResult
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (a *Analyzer) IsInterfaceNil() bool {
-	return a == nil
-}
-
-func (a *Analyzer) changeTargetStatus(address string, status scan.TargetStatus) string {
+func (a *Analyzer) changeTargetStatus(address string, status core.TargetStatus) string {
 	for idx, _ := range a.Targets {
 		if address == a.Targets[idx].Address {
 			a.Targets[idx].Status = status
@@ -95,4 +91,9 @@ func (a *Analyzer) changeTargetStatus(address string, status scan.TargetStatus) 
 		}
 	}
 	return address
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (a *Analyzer) IsInterfaceNil() bool {
+	return a == nil
 }

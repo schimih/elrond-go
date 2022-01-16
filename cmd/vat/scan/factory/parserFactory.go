@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"github.com/elrond-go/cmd/vat/core/scan"
+	"github.com/elrond-go/cmd/vat/scan"
 )
 
 type ParserFactory struct {

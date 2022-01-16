@@ -2,6 +2,8 @@ package evaluation
 
 import (
 	"fmt"
+
+	"github.com/elrond-go/cmd/vat/core"
 )
 
 // SIMPLE Evaluation -> evaluate based on port's status
@@ -16,11 +18,10 @@ type EvaluationResult struct {
 	EvaluationType int
 	Score          score
 	SecurityLevel  securityLevel
-	Reasons        []string
+	Judgment       []string
 }
 
 type score int
-type securityLevel int
 
 const (
 	highRisk   score = -25
@@ -28,6 +29,8 @@ const (
 	smallRisk  score = -5
 	noRisk     score = 0
 )
+
+type securityLevel int
 
 const (
 	HIGH  securityLevel = 0
@@ -46,18 +49,9 @@ const (
 	UNKOWN
 )
 
-// Enumerates the different possible state values.
-const (
-	Open       = "open"
-	Closed     = "closed"
-	Filtered   = "filtered"
-	Unfiltered = "unfiltered"
-	Reset      = "reset"
-)
-
 func (e *EvaluationResult) Evaluate(node Node) EvaluationResult {
 	for _, port := range node.Ports {
-		if port.State == Open {
+		if port.State == core.Open {
 			e.deduct(port.Number)
 		}
 	}
@@ -104,12 +98,10 @@ func isPortInRange(port int, low int, high int) bool {
 }
 
 func (e *EvaluationResult) processEvaluation(portType int, portNumber int) {
-	e.Reasons = append(e.Reasons, fmt.Sprintf("NO RISK - Elrond Port Open - 0 points deducted", "port", portNumber))
+	e.Judgment = append(e.Judgment, fmt.Sprintf("NO RISK - Elrond Port Open - 0 points deducted", "port", portNumber))
 	e.Score += evaluateRisk(portType)
 	e.SecurityLevel = calculateSecurityLevel(e.Score)
 }
-
-func formatReason()
 
 func evaluateRisk(portType int) score {
 	switch portType {

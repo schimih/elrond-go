@@ -7,8 +7,8 @@ const (
 type EvaluatorFactory struct {
 }
 
-func NewEvaluatorFactory() *EvaluatorFactory {
-	return &EvaluatorFactory{}
+func NewEvaluatorFactory() EvaluatorFactory {
+	return EvaluatorFactory{}
 }
 
 func (ef *EvaluatorFactory) CreateEvaluator(node Node, evaluationType int) Evaluator {
@@ -16,7 +16,7 @@ func (ef *EvaluatorFactory) CreateEvaluator(node Node, evaluationType int) Evalu
 		Node:           node,
 		EvaluationType: evaluationType,
 		Score:          initialRating,
-		Reasons:        make([]string, 0),
+		Judgment:       make([]string, 0),
 	}
 }
 

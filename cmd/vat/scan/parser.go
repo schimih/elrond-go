@@ -3,6 +3,7 @@ package scan
 import (
 	"strings"
 
+	"github.com/elrond-go/cmd/vat/core"
 	go_nmap "github.com/lair-framework/go-nmap"
 )
 
@@ -11,14 +12,6 @@ type ParserData struct {
 	ParsingResult []Peer
 	Grammar       int
 }
-
-type TargetStatus string
-
-const (
-	NEW     TargetStatus = "NEW"
-	SCANNED TargetStatus = "SCANNED"
-	EXPIRED TargetStatus = "EXPIRED"
-)
 
 func (p *ParserData) Parse() (parsingResults []Peer) {
 	nmapResultSlice := make([]*go_nmap.NmapRun, 0)
@@ -45,7 +38,7 @@ func (p *ParserData) processInput(NmapScanResult []*go_nmap.NmapRun) {
 
 func (p *ParserData) process(id int, host go_nmap.Host) {
 	pS := createPortSlice(host)
-	peer := NewPeer(uint(id), host.Addresses[0].Addr, pS.translatePortSlice(), host.Status.State, SCANNED, p.Grammar)
+	peer := NewPeer(uint(id), host.Addresses[0].Addr, pS.translatePortSlice(), host.Status.State, core.SCANNED, p.Grammar)
 	p.ParsingResult = append(p.ParsingResult, peer)
 }
 

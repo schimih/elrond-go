@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	//"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
@@ -16,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+
+	//"github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/core/analysis"
 	"github.com/elrond-go/cmd/vat/core/evaluation"
 	"github.com/elrond-go/cmd/vat/core/scan/factory"
@@ -112,7 +115,7 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info("Analysis is now running")
-	AnalysisType := TCP_ELROND
+	AnalysisType := 1
 	mainLoop(messenger, sigs, AnalysisType)
 
 	return nil
