@@ -38,7 +38,7 @@ func TestTableFormatterOutput_NoEvaluatedTargetAvailable(t *testing.T) {
 	assert.EqualErrorf(t, err, expectedErrorString, "wrong message")
 }
 
-func TestTableFormatterOutput_NoPortOpen(t *testing.T) {
+func TestTableFormatterOutput_NoAccessiblePort(t *testing.T) {
 	rankedReport := NewRankedReport()
 	formatter := &TableFormatter{
 		header:    make([]string, 0),
@@ -52,5 +52,6 @@ func TestTableFormatterOutput_NoPortOpen(t *testing.T) {
 	formatter.Output(rankedReport)
 
 	require.Equal(t, 5, len(formatter.header))     // 5 strings: -"Index", "Address", "Port", "Status", "Service"
-	require.Equal(t, 14, len(formatter.dataLines)) // 5lines per target - 1 line per each port + 1 line for rating => 18 datalines
+	require.Equal(t, 14, len(formatter.dataLines)) // 5lines per target (one is empty -> only no accessible port line) - 1 line per each port + 1 line for rating => 14 datalines
+	require.Equal(t, "NO ACCESIBLE PORTS", formatter.dataLines[0].Values[2])
 }
