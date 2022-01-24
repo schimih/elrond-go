@@ -40,9 +40,9 @@ func openXMLFile(src string, rankedReport RankedReport) (RankedReport, error) {
 	if err != nil {
 		return rankedReport, fmt.Errorf("Could not open File")
 	}
-	// read our opened jsonFile as a byte array.
+	// read our opened xmlFile as a byte array.
 	byteValue, _ := ioutil.ReadAll(xmlFile)
-	//in peers we will have all results from json file
+	//in peers we will have all results from xml file
 	xml.Unmarshal(byteValue, &rankedReport)
 
 	return rankedReport, nil
