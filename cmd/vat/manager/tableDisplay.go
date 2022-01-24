@@ -40,9 +40,6 @@ func (tF *TableFormatter) addTargetToTable(id int, evaluationResult evaluation.E
 		for jdx, tPort := range evaluationResult.Ports {
 			horizontalLineAfter := jdx == len(evaluationResult.Ports)-1
 			if jdx == 0 {
-				if len(evaluationResult.Ports) == 1 {
-					horizontalLineAfter = true
-				}
 				line = display.NewLineData(horizontalLineAfter, []string{
 					fmt.Sprintf("%d", id),
 					evaluationResult.Address,
