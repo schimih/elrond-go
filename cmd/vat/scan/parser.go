@@ -8,13 +8,13 @@ import (
 )
 
 type ParserData struct {
-	Input           [][]byte
-	AnalyzedTargets []ScannedTarget
-	Grammar         utils.AnalysisType
+	Input             [][]byte
+	AnalyzedTargets   []ScannedTarget
+	Grammar           utils.AnalysisType
+	SlicedParsedInput []*go_nmap.NmapRun
 }
 
 func (pD *ParserData) Parse() (parsingResults []ScannedTarget) {
-	slicedParserInput := make([]*go_nmap.NmapRun, 0)
 	for _, byteArray := range pD.Input {
 		parsedNmapResult, err := go_nmap.Parse(byteArray)
 		if err != nil {
@@ -22,14 +22,16 @@ func (pD *ParserData) Parse() (parsingResults []ScannedTarget) {
 				log.Error(err.Error())
 			}
 		}
-		slicedParserInput = append(slicedParserInput, parsedNmapResult)
+		pD.SlicedParsedInput = append(pD.SlicedParsedInput, parsedNmapResult)
 	}
-	pD.translateInput(slicedParserInput)
+
+	pD.translateInput()
+
 	return pD.AnalyzedTargets
 }
 
-func (pD *ParserData) translateInput(NmapScanResult []*go_nmap.NmapRun) {
-	for _, nmapRun := range NmapScanResult {
+func (pD *ParserData) translateInput() {
+	for _, nmapRun := range pD.SlicedParsedInput {
 		for hidx, host := range nmapRun.Hosts {
 			pD.translateTarget(hidx, host)
 		}
@@ -38,8 +40,8 @@ func (pD *ParserData) translateInput(NmapScanResult []*go_nmap.NmapRun) {
 
 func (pD *ParserData) translateTarget(id int, host go_nmap.Host) {
 	pS := createPortSlice(host)
-	portSlice := pS.translatePortSlice()
-	analyzedTarget := NewScannedTarget(uint(id), host.Addresses[0].Addr, portSlice, host.Status.State, utils.SCANNED, pD.Grammar)
+	translatedPortSlice := pS.translatePortSlice()
+	analyzedTarget := NewScannedTarget(uint(id), host.Addresses[0].Addr, translatedPortSlice, host.Status.State, utils.SCANNED, pD.Grammar)
 	pD.AnalyzedTargets = append(pD.AnalyzedTargets, analyzedTarget)
 }
 

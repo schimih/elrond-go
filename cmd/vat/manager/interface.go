@@ -1,6 +1,6 @@
-package output
+package manager
 
 type Formatter interface {
-	GetOutput()
+	Output(rankedReport RankedReport)
 	IsInterfaceNil() bool
 }

@@ -1,7 +1,7 @@
 package scan
 
 type Scanner interface {
-	Scan() []byte
+	Scan() (res []byte, err error)
 	IsInterfaceNil() bool
 }
 

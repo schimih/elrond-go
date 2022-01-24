@@ -7,7 +7,7 @@ import (
 	"github.com/elrond-go/cmd/vat/utils"
 )
 
-type EvaluationTarget struct {
+type EvaluatedTarget struct {
 	Address       string
 	Ports         []scan.Port
 	Status        string
@@ -16,7 +16,7 @@ type EvaluationTarget struct {
 	Judgements    []string
 }
 
-func (eT *EvaluationTarget) Evaluate() EvaluationTarget {
+func (eT *EvaluatedTarget) Evaluate() EvaluatedTarget {
 	deduction := 0
 	for _, port := range eT.Ports {
 		if port.State == utils.Open {
@@ -25,17 +25,18 @@ func (eT *EvaluationTarget) Evaluate() EvaluationTarget {
 		}
 	}
 
-	eT.Score += deduction
+	// deduct based on the identified risk
+	eT.Score -= deduction
 	eT.SecurityLevel = eT.calculateSecurityLevel()
 	eT.Status = string(utils.EVALUATED)
 	return *eT
 }
 
-func (eT *EvaluationTarget) addJudgement(port scan.Port) {
+func (eT *EvaluatedTarget) addJudgement(port scan.Port) {
 	eT.Judgements = append(eT.Judgements, fmt.Sprintf("%s - %d points deducted", port.RiskReason, port.RiskValue))
 }
 
-func (eT *EvaluationTarget) calculateSecurityLevel() utils.SecureLevel {
+func (eT *EvaluatedTarget) calculateSecurityLevel() utils.SecureLevel {
 	if eT.Score >= 80 {
 		return utils.HIGH
 	} else if (eT.Score >= 60) && (eT.Score < 80) {
@@ -47,6 +48,6 @@ func (eT *EvaluationTarget) calculateSecurityLevel() utils.SecureLevel {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (eT *EvaluationTarget) IsInterfaceNil() bool {
+func (eT *EvaluatedTarget) IsInterfaceNil() bool {
 	return eT == nil
 }

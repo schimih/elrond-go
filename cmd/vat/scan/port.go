@@ -49,14 +49,13 @@ func createPortSlice(host go_nmap.Host) Ports {
 func (ps *Ports) translatePortSlice() (portSlice []Port) {
 	for idx, port := range ps.Host.Ports {
 		newPort := NewPort(uint(idx), port.PortId, port.Protocol, utils.PortStatus(port.State.State), port.Owner.Name, utils.Unknown)
-		newPort.getTypeAndImportance()
+		newPort.depictTypeAndImportance()
 		ps.Ports = append(ps.Ports, newPort)
 	}
 	return ps.Ports
 }
 
-// Type returns the Type of a port.
-func (p *Port) getTypeAndImportance() {
+func (p *Port) depictTypeAndImportance() {
 	if p.isPortInRange(37373, 38383) {
 		p.Type = utils.ElrondPort
 		p.RiskValue = utils.NoRisk

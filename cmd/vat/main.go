@@ -18,9 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/elrond-go/cmd/vat/analysis"
 	"github.com/elrond-go/cmd/vat/evaluation"
-	"github.com/elrond-go/cmd/vat/output"
+	"github.com/elrond-go/cmd/vat/manager"
 	"github.com/elrond-go/cmd/vat/scan/factory"
-	"github.com/elrond-go/cmd/vat/utils"
 	"github.com/urfave/cli"
 )
 
@@ -59,15 +58,6 @@ var (
 	}
 	argsConfig           = &cfg{}
 	p2pConfigurationFile = "./config/p2p.toml"
-)
-
-const (
-	TCP_ELROND = iota
-	TCP_OUTSIDE_ELROND
-	TCP_WEB
-	TCP_SSH
-	TCP_FULL
-	TCP_STANDARD
 )
 
 var log = logger.GetOrCreate("vat")
@@ -114,24 +104,22 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info("Analysis is now running")
-	analysisType := utils.TCP_WEB
-	mainLoop(messenger, sigs, analysisType)
+	mainLoop(messenger, sigs)
 
 	return nil
 }
 
-func mainLoop(messenger p2p.Messenger, stop chan os.Signal, analysisType utils.AnalysisType) {
-	sf := factory.NewNmapScannerFactory()
-	pf := factory.NewParserFactory()
-	ef := evaluation.NewEvaluatorFactory()
+func mainLoop(messenger p2p.Messenger, stop chan os.Signal) {
+	sF := factory.NewNmapScannerFactory()
+	pF := factory.NewParserFactory()
+	eF := evaluation.NewEvaluatorFactory()
+	fF := manager.NewFormatterFactory()
 	d := analysis.NewP2pDiscoverer(messenger)
-	a, _ := analysis.NewAnalyzer(d, sf, pf, analysisType)
+	a, _ := analysis.NewAnalyzer(d, sF, pF)
 
-	report := evaluation.NewEvaluationReport(ef)
-	formatter := output.CreateFormatter(utils.Table)
+	report := evaluation.NewEvaluationReport(eF)
 
-	//manager := manager.NewAnalysisManager(analysisType)
-	evaluationType := utils.PortStatusEvaluation
+	manager, _ := manager.NewAnalysisManager(fF)
 	for {
 		select {
 		case <-stop:
@@ -139,10 +127,9 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal, analysisType utils.A
 			return
 		case <-time.After(time.Second * 5):
 			a.DiscoverTargets()
-			analyzedTargets := a.AnalyzeNewlyDiscoveredTargets()
-			report.StartEvaluation(analyzedTargets, evaluationType)
-			formatter.GetOutput()
-			log.Info("Added targets", "targets", len(a.DiscoveredTargets))
+			analyzedTargets := a.AnalyzeNewlyDiscoveredTargets(manager.AnalysisType)
+			evaluatedTargets := report.RunEvaluation(analyzedTargets, manager.EvaluationType)
+			manager.CompleteRound(evaluatedTargets)
 		}
 	}
 }

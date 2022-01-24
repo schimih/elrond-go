@@ -31,22 +31,20 @@ func (s *ArgNmapScanner) postScan() {
 }
 
 // Run nmap scan
-func (s *ArgNmapScanner) Scan() (res []byte) {
+func (s *ArgNmapScanner) Scan() (res []byte, err error) {
 	s.preScan()
-	// Run nmap
-	res, err := shellCmd(s.Cmd)
-	if err != nil {
-		s.Status = utils.FAILED
+	res, error := shellCmd(s.Cmd)
+	if error != nil {
+		return nil, err
 	}
 
 	s.postScan()
-	return res
+	return res, nil
 }
 
 func shellCmd(cmd string) (res []byte, err error) {
-	// Prepare Nmap
+
 	res, err = exec.Command("sh", "-c", cmd).Output()
-	// Run Nmap
 	if err != nil {
 		return nil, err
 	}

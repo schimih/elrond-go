@@ -101,9 +101,9 @@ const (
 type Risk int
 
 const (
-	HighRisk   Risk = -25
-	MediumRisk Risk = -10
-	SmallRisk  Risk = -5
+	HighRisk   Risk = 25
+	MediumRisk Risk = 10
+	SmallRisk  Risk = 5
 	NoRisk     Risk = 0
 )
 
@@ -129,10 +129,11 @@ const (
 type OutputType int
 
 const (
-	Table OutputType = 0
-	JSON  OutputType = 1
-	XML   OutputType = 2
-	GIN   OutputType = 3
+	Table    OutputType = 0
+	JSON     OutputType = 1
+	XML      OutputType = 2
+	GIN      OutputType = 3
+	JustScan OutputType = 4
 )
 
 const JsonFilePath = "./cmd/vat/peers.json"

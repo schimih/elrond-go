@@ -1,22 +1,19 @@
-package output
+package manager
 
 import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
 
-	"github.com/elrond-go/cmd/vat/evaluation"
 	"github.com/elrond-go/cmd/vat/utils"
 )
 
 type JsonFormatter struct {
-	OutputType       utils.OutputType
-	EvaluationReport []evaluation.EvaluationTarget
 }
 
-func (jF *JsonFormatter) GetOutput() {
+func (jF *JsonFormatter) Output(rankedReport RankedReport) {
 
-	jsonData, _ := json.MarshalIndent(jF.EvaluationReport, "", " ")
+	jsonData, _ := json.MarshalIndent(rankedReport, "", " ")
 	_ = ioutil.WriteFile("AnalysisResult.json", jsonData, 0644)
 
 	path := utils.JsonFilePath

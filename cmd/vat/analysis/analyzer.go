@@ -13,15 +13,15 @@ import (
 type Analyzer struct {
 	DiscoveredTargets []DiscoveredTarget
 	discoverer        Discoverer
-	scanner           ScannerFactory
-	parser            ParserFactory
+	scannerFactory    ScannerFactory
+	parserFactory     ParserFactory
 	AnalysisType      utils.AnalysisType
 	ManagerCommand    int
 }
 
 var log = logger.GetOrCreate("vat")
 
-func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory, analysisType utils.AnalysisType) (*Analyzer, error) {
+func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory) (*Analyzer, error) {
 	if check.IfNil(discoverer) {
 		return nil, fmt.Errorf("Discoverer needed")
 	}
@@ -36,11 +36,10 @@ func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory, ana
 
 	a := &Analyzer{}
 	a.discoverer = discoverer
-	a.AnalysisType = analysisType
 	a.ManagerCommand = NO_COMMAND
 	a.DiscoveredTargets = make([]DiscoveredTarget, 0)
-	a.scanner = sf
-	a.parser = pf
+	a.scannerFactory = sf
+	a.parserFactory = pf
 
 	return a, nil
 }
@@ -49,14 +48,16 @@ func (a *Analyzer) DiscoverTargets() {
 	a.DiscoveredTargets = a.discoverer.DiscoverNewTargets(a.DiscoveredTargets)
 }
 
-func (a *Analyzer) AnalyzeNewlyDiscoveredTargets() (scanResults []scan.ScannedTarget) {
+func (a *Analyzer) AnalyzeNewlyDiscoveredTargets(analysisType utils.AnalysisType) (scanResults []scan.ScannedTarget) {
+	// get command from manager
+	a.AnalysisType = analysisType
 	nmapScanResults := a.deployAnalysisWorkers()
-	p := a.parser.CreateParser(nmapScanResults, a.AnalysisType)
+	p := a.parserFactory.CreateParser(nmapScanResults, analysisType)
 	return p.Parse()
 }
 
 func (a *Analyzer) deployAnalysisWorkers() (work [][]byte) {
-	nmapScanResults := make([][]byte, 0)
+	scanResults := make([][]byte, 0)
 	var wg sync.WaitGroup
 	for _, h := range a.DiscoveredTargets {
 		if (h.ActualStatus() == New) || (h.ActualStatus() == Expired) {
@@ -64,20 +65,23 @@ func (a *Analyzer) deployAnalysisWorkers() (work [][]byte) {
 			temp := h
 			go func() {
 				defer wg.Done()
-				nmapScanResults = append(nmapScanResults, a.worker(&temp))
+				scanResults = append(scanResults, a.worker(&temp))
 			}()
 		}
 	}
 	wg.Wait()
-	return nmapScanResults
+	return scanResults
 }
 
-func (a *Analyzer) worker(h *DiscoveredTarget) (scanRawResult []byte) {
-	s := a.scanner.CreateScanner(h.Address, utils.AnalysisType(a.AnalysisType))
+func (a *Analyzer) worker(h *DiscoveredTarget) (rawScanResults []byte) {
+	s := a.scannerFactory.CreateScanner(h.Address, utils.AnalysisType(a.AnalysisType))
 
 	log.Info("Starting scan for:", "address", h.Address)
 	// Run the scan
-	rawResult := s.Scan()
+	rawResult, err := s.Scan()
+	if err != nil {
+		log.Error("Scan failed because %e", err)
+	}
 
 	log.Info("Scanning done for target:", "address", a.changeTargetStatus(h.Address, utils.SCANNED))
 	return rawResult

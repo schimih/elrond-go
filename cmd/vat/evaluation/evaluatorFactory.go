@@ -16,7 +16,7 @@ func NewEvaluatorFactory() EvaluatorFactory {
 }
 
 func (eF *EvaluatorFactory) CreateEvaluator(address string, ports []scan.Port, analysisType utils.AnalysisType) Evaluator {
-	return &EvaluationTarget{
+	return &EvaluatedTarget{
 		Address:       address,
 		Ports:         ports,
 		Status:        string(utils.NEW),
