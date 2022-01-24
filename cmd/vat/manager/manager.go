@@ -38,9 +38,9 @@ func NewAnalysisManager(fF *FormatterFactory) (*AnalysisManager, error) {
 		AnalysisLoops:       0,
 		RankedReport:        rankedReport,
 		FormatterFactory:    fF,
-		AnalysisType:        utils.TCP_WEB,              // by default go with TCP_WEB -> this has to be controled by manager
+		AnalysisType:        utils.TCP_REQ1,             // by default go with TCP_WEB -> this has to be controled by manager
 		EvaluationType:      utils.PortStatusEvaluation, // by default go with PortStatusEvaluation
-		FormatType:          utils.JSON,
+		FormatType:          utils.XML,
 		ExpireNextRun:       false,
 	}, nil
 }

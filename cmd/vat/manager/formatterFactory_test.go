@@ -28,18 +28,18 @@ func TestCreateFormatter_TableFormatter(t *testing.T) {
 
 func TestCreateFormatter_JsonFormatter(t *testing.T) {
 	fF := NewFormatterFactory()
-	TableFormatter := &JsonFormatter{}
+	Jsonformatter := &JsonFormatter{}
 
 	formatter := fF.CreateFormatter(utils.JSON)
-	require.Equal(t, TableFormatter, formatter)
+	require.Equal(t, Jsonformatter, formatter)
 }
 
 func TestCreateFormatter_XMLFormatter(t *testing.T) {
 	fF := NewFormatterFactory()
-	TableFormatter := &XMLFormatter{}
+	XMLFormatter := &XMLFormatter{}
 
 	formatter := fF.CreateFormatter(utils.XML)
-	require.Equal(t, TableFormatter, formatter)
+	require.Equal(t, XMLFormatter, formatter)
 }
 
 func TestCreateFormatter_GINFormatter(t *testing.T) {

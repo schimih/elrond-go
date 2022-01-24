@@ -44,6 +44,13 @@ func (factory *NmapScannerFactory) CreateScanner(target string, analysisType uti
 			Status: utils.NOT_STARTED,
 			Cmd:    constructCmd(target, utils.NMAP_TCP_STANDARD),
 		}
+	case utils.TCP_REQ1:
+		return &scan.ArgNmapScanner{
+			Name:   "TCP-REQ",
+			Target: target,
+			Status: utils.NOT_STARTED,
+			Cmd:    constructCmd(target, utils.NMAP_TCP_REQ1),
+		}
 	default:
 		return nil
 	}

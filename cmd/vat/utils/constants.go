@@ -11,6 +11,7 @@ const (
 	TCP_SSH            AnalysisType = 3
 	TCP_FULL           AnalysisType = 4
 	TCP_STANDARD       AnalysisType = 5
+	TCP_REQ1           AnalysisType = 6
 )
 
 // EvaluationType represents the type of Evaluation that can be ran.
@@ -96,6 +97,7 @@ const (
 	NMAP_TCP_SSH            NmapCommand = "-Pn -p22"
 	NMAP_TCP_FULL           NmapCommand = "-Pn -sS -A -p-"
 	NMAP_TCP_STANDARD       NmapCommand = "--randomize-hosts -Pn -sS -A -T4 -g53 --top-ports 1000"
+	NMAP_TCP_REQ1           NmapCommand = "-Pn -sS -p22,80,8080,280,443,37373-38383"
 )
 
 type Risk int
@@ -137,3 +139,4 @@ const (
 )
 
 const JsonFilePath = "./cmd/vat/AnalysisResult.json"
+const XMLFilePath = "./cmd/vat/AnalysisResult.xml"
