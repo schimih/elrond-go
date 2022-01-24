@@ -17,10 +17,10 @@ type TableFormatter struct {
 }
 
 // to be refactored
-func (tF *TableFormatter) Output(rankedReport RankedReport) {
+func (tF *TableFormatter) Output(rankedReport RankedReport) error {
 	if rankedReport.NodesAnalyzed == 0 {
 		log.Info("No scanned targets: nothing to display.")
-		return
+		return fmt.Errorf("No scanned targets: nothing to display.")
 	}
 
 	tF.header = []string{"Index", "Address", "Port", "Status", "Service"}
@@ -31,6 +31,7 @@ func (tF *TableFormatter) Output(rankedReport RankedReport) {
 
 	table, _ := display.CreateTableString(tF.header, tF.dataLines)
 	fmt.Println(table)
+	return nil
 }
 
 func (tF *TableFormatter) addTargetToTable(id int, evaluationResult evaluation.EvaluatedTarget) {
@@ -60,7 +61,7 @@ func (tF *TableFormatter) addTargetToTable(id int, evaluationResult evaluation.E
 		line = display.NewLineData(true, []string{
 			fmt.Sprintf("%d", id),
 			evaluationResult.Address,
-			"NO OPEN PORTS"})
+			"NO ACCESIBLE PORTS"})
 		tF.dataLines = append(tF.dataLines, line)
 	}
 	tF.addRating(evaluationResult)

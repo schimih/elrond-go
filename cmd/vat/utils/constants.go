@@ -92,7 +92,7 @@ type NmapCommand string
 const (
 	NMAP_TCP_ELROND         NmapCommand = "-Pn -sS -p37373-38383"
 	NMAP_TCP_OUTSIDE_ELROND NmapCommand = "-Pn -sS -p-37372,38384-"
-	NMAP_TCP_WEB            NmapCommand = "-Pn -p80,8080,280,443" // added: http-mgmt (280), https (443)
+	NMAP_TCP_WEB            NmapCommand = "-Pn -sS -p80,8080,280,443" // added: http-mgmt (280), https (443)
 	NMAP_TCP_SSH            NmapCommand = "-Pn -p22"
 	NMAP_TCP_FULL           NmapCommand = "-Pn -sS -A -p-"
 	NMAP_TCP_STANDARD       NmapCommand = "--randomize-hosts -Pn -sS -A -T4 -g53 --top-ports 1000"

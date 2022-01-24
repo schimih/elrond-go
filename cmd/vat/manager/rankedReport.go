@@ -53,23 +53,11 @@ func (rR *RankedReport) SortAndPopulate(evaluatedTargets []evaluation.EvaluatedT
 
 func (rR *RankedReport) GetAllEvaluatedTargets() (evaluatedTargets []evaluation.EvaluatedTarget) {
 
-	for _, evaluatedTarget := range rR.HighRiskNodes {
-		evaluatedTargets = append(evaluatedTargets, evaluatedTarget)
-	}
+	evaluatedTargets = append(rR.HighRiskNodes, rR.MediumRiskNodes...) // can't concatenate more than 2 slice at once
 
-	for _, evaluatedTarget := range rR.MediumRiskNodes {
-		evaluatedTargets = append(evaluatedTargets, evaluatedTarget)
-	}
+	evaluatedTargets = append(evaluatedTargets, rR.LowRiskNodes...)
 
-	for _, evaluatedTarget := range rR.LowRiskNodes {
-		evaluatedTargets = append(evaluatedTargets, evaluatedTarget)
-	}
-
-	for _, evaluatedTarget := range rR.HiddenNodes {
-		evaluatedTargets = append(evaluatedTargets, evaluatedTarget)
-	}
-
-	return
+	return append(evaluatedTargets, rR.HiddenNodes...)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

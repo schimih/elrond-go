@@ -2,6 +2,7 @@ package manager
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -11,7 +12,7 @@ import (
 type JsonFormatter struct {
 }
 
-func (jF *JsonFormatter) Output(rankedReport RankedReport) {
+func (jF *JsonFormatter) Output(rankedReport RankedReport) error {
 
 	jsonData, _ := json.MarshalIndent(rankedReport, "", " ")
 	_ = ioutil.WriteFile("AnalysisResult.json", jsonData, 0644)
@@ -19,10 +20,11 @@ func (jF *JsonFormatter) Output(rankedReport RankedReport) {
 	path := utils.JsonFilePath
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
 	if err != nil {
-		return
+		return fmt.Errorf("Could not open File")
 	}
 	log.Info("Peers list added to ", "path", path)
 	f.Write(jsonData)
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

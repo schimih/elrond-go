@@ -3,8 +3,8 @@ package manager
 type XMLFormatter struct {
 }
 
-func (xF *XMLFormatter) Output(rankedReport RankedReport) {
-
+func (xF *XMLFormatter) Output(rankedReport RankedReport) error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
