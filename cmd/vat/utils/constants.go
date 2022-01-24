@@ -136,4 +136,4 @@ const (
 	JustScan OutputType = 4
 )
 
-const JsonFilePath = "./cmd/vat/peers.json"
+const JsonFilePath = "./cmd/vat/AnalysisResult.json"

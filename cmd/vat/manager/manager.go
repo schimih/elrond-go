@@ -40,7 +40,7 @@ func NewAnalysisManager(fF *FormatterFactory) (*AnalysisManager, error) {
 		FormatterFactory:    fF,
 		AnalysisType:        utils.TCP_WEB,              // by default go with TCP_WEB -> this has to be controled by manager
 		EvaluationType:      utils.PortStatusEvaluation, // by default go with PortStatusEvaluation
-		FormatType:          utils.Table,
+		FormatType:          utils.JSON,
 		ExpireNextRun:       false,
 	}, nil
 }

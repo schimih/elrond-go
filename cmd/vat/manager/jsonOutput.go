@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/elrond-go/cmd/vat/utils"
 )
@@ -15,15 +14,14 @@ type JsonFormatter struct {
 func (jF *JsonFormatter) Output(rankedReport RankedReport) error {
 
 	jsonData, _ := json.MarshalIndent(rankedReport, "", " ")
-	_ = ioutil.WriteFile("AnalysisResult.json", jsonData, 0644)
+	err := ioutil.WriteFile("AnalysisResults.json", jsonData, 0644)
+	if err != nil {
+		return fmt.Errorf("Could not write File")
+	}
 
 	path := utils.JsonFilePath
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-	if err != nil {
-		return fmt.Errorf("Could not open File")
-	}
-	log.Info("Peers list added to ", "path", path)
-	f.Write(jsonData)
+	log.Info("Evaluated Targets list added to ", "path", path)
+	log.Info("Evaluated", "Nodes", rankedReport.NodesAnalyzed)
 	return nil
 }
 
