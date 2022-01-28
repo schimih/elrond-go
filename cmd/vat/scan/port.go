@@ -12,8 +12,7 @@ type Port struct {
 	State      utils.PortStatus
 	Owner      string
 	Type       utils.PortType
-	RiskValue  utils.Risk
-	RiskReason utils.Judgement
+	Importance utils.Judgement
 }
 
 type Ports struct {
@@ -34,8 +33,7 @@ func NewPort(id uint,
 		State:      state,
 		Owner:      owner,
 		Type:       portType,
-		RiskValue:  100,
-		RiskReason: utils.JudgementNoRisk,
+		Importance: utils.JudgementNoRisk,
 	}
 }
 
@@ -58,20 +56,16 @@ func (ps *Ports) translatePortSlice() (portSlice []Port) {
 func (p *Port) depictTypeAndImportance() {
 	if p.isPortInRange(37373, 38383) {
 		p.Type = utils.ElrondPort
-		p.RiskValue = utils.NoRisk
-		p.RiskReason = utils.JudgementNoRisk
+		p.Importance = utils.JudgementNoRisk
 	} else if (p.Number == 80) || (p.Number == 8080) {
 		p.Type = utils.WebPort
-		p.RiskValue = utils.SmallRisk
-		p.RiskReason = utils.JudgementWeb
+		p.Importance = utils.JudgementWeb
 	} else if p.Number == 22 {
 		p.Type = utils.SshPort
-		p.RiskValue = utils.SmallRisk
-		p.RiskReason = utils.JudgementSsh
+		p.Importance = utils.JudgementSsh
 	} else {
 		p.Type = utils.OutsideElrond
-		p.RiskValue = utils.MediumRisk
-		p.RiskReason = utils.JudgementMediumRisk
+		p.Importance = utils.JudgementMediumRisk
 	}
 }
 

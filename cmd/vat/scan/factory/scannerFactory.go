@@ -7,14 +7,14 @@ import (
 	"github.com/elrond-go/cmd/vat/utils"
 )
 
-type NmapScannerFactory struct {
+type ScannerFactory struct {
 }
 
-func NewNmapScannerFactory() *NmapScannerFactory {
-	return &NmapScannerFactory{}
+func NewScannerFactory() *ScannerFactory {
+	return &ScannerFactory{}
 }
 
-func (factory *NmapScannerFactory) CreateScanner(target string, analysisType utils.AnalysisType) scan.Scanner {
+func (factory *ScannerFactory) CreateScanner(target string, analysisType utils.AnalysisType) scan.Scanner {
 	switch analysisType {
 	case utils.TCP_ELROND:
 		return &scan.ArgNmapScanner{
@@ -30,12 +30,12 @@ func (factory *NmapScannerFactory) CreateScanner(target string, analysisType uti
 			Status: utils.NOT_STARTED,
 			Cmd:    constructCmd(target, utils.NMAP_TCP_WEB),
 		}
-	case utils.TCP_SSH:
+	case utils.TCP_SSH_ALGOS:
 		return &scan.ArgNmapScanner{
 			Name:   "TCP-SSH",
 			Target: target,
 			Status: utils.NOT_STARTED,
-			Cmd:    constructCmd(target, utils.NMAP_TCP_SSH),
+			Cmd:    fmt.Sprintf("nmap --script ssh2-enum-algos %s -oX -", target),
 		}
 	case utils.TCP_STANDARD:
 		return &scan.ArgNmapScanner{
@@ -51,6 +51,20 @@ func (factory *NmapScannerFactory) CreateScanner(target string, analysisType uti
 			Status: utils.NOT_STARTED,
 			Cmd:    constructCmd(target, utils.NMAP_TCP_REQ1),
 		}
+	case utils.TCP_POLITE_REQ1:
+		return &scan.PoliteScanner{
+			Host: target,
+			Port: 22,
+			User: "test_username",
+			Pwd:  "test_password",
+		}
+	case utils.TCP_BRUTE_REQ1:
+		return &scan.ArgNmapScanner{
+			Name:   "TCP-BRUTE-SSH",
+			Target: target,
+			Status: utils.NOT_STARTED,
+			Cmd:    constructCmd(target, utils.NMAP_TCP_REQ1),
+		}
 	default:
 		return nil
 	}
@@ -61,6 +75,6 @@ func constructCmd(target string, args utils.NmapCommand) string {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (factory *NmapScannerFactory) IsInterfaceNil() bool {
+func (factory *ScannerFactory) IsInterfaceNil() bool {
 	return factory == nil
 }

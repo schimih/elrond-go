@@ -23,7 +23,7 @@ func TestTableFormatterOutput(t *testing.T) {
 	formatter.Output(rankedReport)
 
 	require.Equal(t, 5, len(formatter.header))     // 5 strings: -"Index", "Address", "Port", "Status", "Service"
-	require.Equal(t, 18, len(formatter.dataLines)) // 5lines per target - 1 line per each port + 1 line for rating => 18 datalines
+	require.Equal(t, 21, len(formatter.dataLines)) // 5lines per target - 1 line per each port + 1 line for rating => 18 datalines
 }
 
 func TestTableFormatterOutput_NoEvaluatedTargetAvailable(t *testing.T) {

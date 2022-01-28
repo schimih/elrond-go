@@ -3,15 +3,34 @@ package utils
 // AnalysisType represents the type of Analysis to be ran
 type AnalysisType int
 
-// Enumerates some of the commands that can be ran
+// Enumerates some of the analysis that can be ran
+// TCP_ELROND - Scan only ELROND Ports
+//
+// TCP_WEB - Scan only WEB Ports
+//
+// TCP_SSH - Scan only SSH Ports
+//
+// TCP_ALL - Scan all ports
+//
+// TCP_STANDARD - Scan top 1000 ports
+//
+// TCP_REQ1 - Scan ports as per requirement
+//
+// TCP_SSH_ALGOS - Scan installed algos on SSH ports
+//
+// TCP_POLITE_REQ1 - Creates a scanner that uses ssh.Dial function to check access to a SSH port
+//
+// TCP_BRUTE_REQ1 - Uses nmap scanner to check access to a SSH port
 const (
-	TCP_ELROND         AnalysisType = iota
-	TCP_OUTSIDE_ELROND AnalysisType = 1
-	TCP_WEB            AnalysisType = 2
-	TCP_SSH            AnalysisType = 3
-	TCP_FULL           AnalysisType = 4
-	TCP_STANDARD       AnalysisType = 5
-	TCP_REQ1           AnalysisType = 6
+	TCP_ELROND      AnalysisType = iota
+	TCP_WEB         AnalysisType = 1
+	TCP_SSH         AnalysisType = 2
+	TCP_ALL         AnalysisType = 3
+	TCP_STANDARD    AnalysisType = 4
+	TCP_REQ1        AnalysisType = 5
+	TCP_SSH_ALGOS   AnalysisType = 6
+	TCP_POLITE_REQ1 AnalysisType = 7
+	TCP_BRUTE_REQ1  AnalysisType = 8
 )
 
 // EvaluationType represents the type of Evaluation that can be ran.
@@ -25,11 +44,14 @@ type EvaluationType int
 // For now ONLY "portStatusEvaluation" evaluation is implemented. Other implementations
 // like (fingerprint, dns, bruteforce etc) will follow.
 //
+// Req1_Evaluation - PortStatusEvaluation + POLITE - if SSH port is open -> try introducing Username & Pass
+//
 // The evaluationType will be controlled by "manager".
 const (
-	NoEvaluation         EvaluationType = iota
-	PortStatusEvaluation EvaluationType = 1
-
+	NoEvaluation                EvaluationType = iota
+	PortStatusEvaluation        EvaluationType = 1
+	Polite_PortAndSshEvaluation EvaluationType = 2
+	Brute_PortAndSshEvaluation  EvaluationType = 3
 	// DNS etc
 )
 
@@ -98,7 +120,12 @@ const (
 	NMAP_TCP_FULL           NmapCommand = "-Pn -sS -A -p-"
 	NMAP_TCP_STANDARD       NmapCommand = "--randomize-hosts -Pn -sS -A -T4 -g53 --top-ports 1000"
 	NMAP_TCP_REQ1           NmapCommand = "-Pn -sS -p22,80,8080,280,443,37373-38383"
+	NMAP_TCP_SSH_RUN        NmapCommand = "-p 22 --script=ssh-run /	--script-args="
+	NMAP_TCP_SSH_ALGOS      NmapCommand = "--script ssh2-enum-algos"
+	NMAP_TCP_SSH_BRUTE      NmapCommand = "-p 22 --script ssh-brute --script-args userdb=users.lst,passdb=pass.lst /	--script-args ssh-brute.timeout=4s"
 )
+
+const SSH_ARGS = "ssh-run.cmd=ls -l /, ssh-run.username=myusername, ssh-run.password=mypassword"
 
 type Risk int
 
@@ -112,11 +139,14 @@ const (
 type Judgement string
 
 const (
-	JudgementSshBrutePassed Judgement = "HIGH RISK - Reason"
-	JudgementMediumRisk     Judgement = "MEDIUM RISK - Reason"
-	JudgementWeb            Judgement = "SMALL RISK - Reason"
-	JudgementSsh            Judgement = "SMALL RISK - Reason"
-	JudgementNoRisk         Judgement = "NO RISK - Reason"
+	JudgementSshUserPermited Judgement = "5$ SMALL RISK - SSH User permitted"
+	JudgementSshPwdPermited  Judgement = "25$ HIGH RISK - SSH PasswordAuthentication active"
+	JudgementDummyPermited   Judgement = "50$ ALERT - Dummy values for test have been accepted"
+	JudgementMediumRisk      Judgement = "10$ MEDIUM RISK - Port Outside Elrond Permited ports Open"
+	JudgementWeb             Judgement = "5$ SMALL RISK - Tcp-Web Port Open"
+	JudgementSsh             Judgement = "5$ SMALL RISK - SSH Port Open"
+	JudgementNoRisk          Judgement = "0$ NO RISK - Elrond Port Open"
+	JudgementFromPort        Judgement = "0$"
 )
 
 type SecureLevel int

@@ -110,14 +110,14 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 }
 
 func mainLoop(messenger p2p.Messenger, stop chan os.Signal) {
-	sF := factory.NewNmapScannerFactory()
+	sF := factory.NewScannerFactory()
 	pF := factory.NewParserFactory()
 	eF := evaluation.NewEvaluatorFactory()
 	fF := manager.NewFormatterFactory()
 	d := analysis.NewP2pDiscoverer(messenger)
 	a, _ := analysis.NewAnalyzer(d, sF, pF)
 
-	report := evaluation.NewEvaluationReport(eF)
+	report := evaluation.NewEvaluationReport(eF, sF)
 
 	manager, _ := manager.NewAnalysisManager(fF)
 	for {

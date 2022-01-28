@@ -64,16 +64,25 @@ func (tF *TableFormatter) addTargetToTable(id int, evaluationResult evaluation.E
 			"NO ACCESIBLE PORTS"})
 		tF.dataLines = append(tF.dataLines, line)
 	}
+	tF.addJudgement(evaluationResult)
 	tF.addRating(evaluationResult)
 }
 
 func (tF *TableFormatter) addRating(evaluationResult evaluation.EvaluatedTarget) {
-	totalline := display.NewLineData(true, []string{">>>>>",
+	totalLine := display.NewLineData(true, []string{">>>>>",
 		">>>>>>>>>>>",
 		">>>>>",
 		"RATING",
 		fmt.Sprintf("%d", evaluationResult.Score)})
-	tF.dataLines = append(tF.dataLines, totalline)
+	tF.dataLines = append(tF.dataLines, totalLine)
+}
+
+func (tF *TableFormatter) addJudgement(evaluationResult evaluation.EvaluatedTarget) {
+	for _, judgement := range evaluationResult.Judgements {
+		judgementLine := display.NewLineData(false, []string{"", "", "", "", judgement})
+		tF.dataLines = append(tF.dataLines, judgementLine)
+	}
+
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
