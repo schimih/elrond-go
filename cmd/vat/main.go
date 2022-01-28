@@ -20,85 +20,18 @@ import (
 	"github.com/elrond-go/cmd/vat/evaluation"
 	"github.com/elrond-go/cmd/vat/manager"
 	"github.com/elrond-go/cmd/vat/scan/factory"
-	"github.com/urfave/cli"
-)
-
-type cfg struct {
-	vatAnalysisType string
-}
-
-const (
-	defaultLogsPath     = "logs"
-	logFilePrefix       = "elrond-seed"
-	filePathPlaceholder = "[path]"
-)
-
-var (
-	vatTemplate = `NAME:
-	{{.Name}} - {{.Usage}}
- USAGE:
-	{{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
-	{{if len .Authors}}
- AUTHOR:
-	{{range .Authors}}{{ . }}{{end}}
-	{{end}}{{if .Commands}}
- GLOBAL OPTIONS:
-	{{range .VisibleFlags}}{{.}}
-	{{end}}
- VERSION:
-	{{.Version}}
-	{{end}}
- `
-
-	analysisType = cli.StringFlag{
-		Name:        "analysis-type",
-		Usage:       "Provide type of analysis. Default full test",
-		Value:       "full",
-		Destination: &argsConfig.vatAnalysisType,
-	}
-	argsConfig           = &cfg{}
-	p2pConfigurationFile = "./config/p2p.toml"
 )
 
 var log = logger.GetOrCreate("vat")
 
 func main() {
 	log.Info("Starting VAT")
-	app := cli.NewApp()
-	cli.AppHelpTemplate = vatTemplate
-	app.Name = "Vulnerability Analysis Tool"
-	app.Version = "v0.0.1"
-	app.Usage = "This tool will be used for security checks on Elrond EcoSystem (v0.0.1 - portscanner and ssh access)"
-	app.Flags = []cli.Flag{
-		analysisType,
-	}
-
-	app.Authors = []cli.Author{
-		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
-		},
-	}
-
-	app.Action = func(ctx *cli.Context) error {
-		return startVulnerabilityAnalysis(ctx)
-	}
-
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Error(err.Error())
-		os.Exit(1)
-	}
-}
-
-func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	var err error
-	// to implement ctx for test flag
 
 	// Start seednode
 	messenger, err := startSeedNode()
 	if err != nil {
-		return err
+		log.Error("Could not start seed Node")
 	}
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -106,7 +39,6 @@ func startVulnerabilityAnalysis(ctx *cli.Context) error {
 	log.Info("Analysis is now running")
 	mainLoop(messenger, sigs)
 
-	return nil
 }
 
 func mainLoop(messenger p2p.Messenger, stop chan os.Signal) {
@@ -171,7 +103,7 @@ func startSeedNode() (messenger p2p.Messenger, err error) {
 
 	log.Info("Starting Seed Node")
 
-	p2pConfig, err := common.LoadP2PConfig(p2pConfigurationFile)
+	p2pConfig, err := common.LoadP2PConfig("./config/p2p.toml")
 	if err != nil {
 		return nil, err
 	}
