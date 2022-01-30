@@ -15,7 +15,7 @@ type ScannedTarget struct {
 	AnalysisType utils.AnalysisType
 }
 
-func NewScannedTarget(id uint, address string, ports []Port, targetStatus string, peerStatus utils.TargetStatus, analysisType utils.AnalysisType) ScannedTarget {
+func NewScannedTarget(id uint, address string, ports []Port, peerStatus utils.TargetStatus, analysisType utils.AnalysisType) ScannedTarget {
 
 	return ScannedTarget{
 		ID:           id,

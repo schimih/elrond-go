@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/elrond-go/cmd/vat/evaluation"
-	"github.com/elrond-go/cmd/vat/utils"
 )
 
 var log = logger.GetOrCreate("vat")
@@ -20,7 +19,7 @@ type TableFormatter struct {
 func (tF *TableFormatter) Output(rankedReport RankedReport) error {
 	if rankedReport.NodesAnalyzed == 0 {
 		log.Info("No scanned targets: nothing to display.")
-		return fmt.Errorf("No scanned targets: nothing to display.")
+		return fmt.Errorf("no scanned targets: nothing to display")
 	}
 
 	tF.header = []string{"Index", "Address", "Port", "Status", "Service"}
@@ -31,12 +30,13 @@ func (tF *TableFormatter) Output(rankedReport RankedReport) error {
 
 	table, _ := display.CreateTableString(tF.header, tF.dataLines)
 	fmt.Println(table)
+
 	return nil
 }
 
 func (tF *TableFormatter) addTargetToTable(id int, evaluationResult evaluation.EvaluatedTarget) {
-
 	var line *display.LineData
+
 	if len(evaluationResult.Ports) != 0 {
 		for jdx, tPort := range evaluationResult.Ports {
 			horizontalLineAfter := jdx == len(evaluationResult.Ports)-1
@@ -45,14 +45,14 @@ func (tF *TableFormatter) addTargetToTable(id int, evaluationResult evaluation.E
 					fmt.Sprintf("%d", id),
 					evaluationResult.Address,
 					fmt.Sprintf("%d", tPort.Number),
-					string(utils.PortStatus(tPort.State)),
+					string(tPort.State),
 					tPort.Protocol})
 			} else {
 				line = display.NewLineData(horizontalLineAfter, []string{
 					"",
 					"",
 					fmt.Sprintf("%d", tPort.Number),
-					string(utils.PortStatus(tPort.State)),
+					string(tPort.State),
 					tPort.Protocol})
 			}
 			tF.dataLines = append(tF.dataLines, line)
@@ -61,9 +61,10 @@ func (tF *TableFormatter) addTargetToTable(id int, evaluationResult evaluation.E
 		line = display.NewLineData(true, []string{
 			fmt.Sprintf("%d", id),
 			evaluationResult.Address,
-			"NO ACCESIBLE PORTS"})
+			"NO ACCESSIBLE PORTS"})
 		tF.dataLines = append(tF.dataLines, line)
 	}
+
 	tF.addJudgement(evaluationResult)
 	tF.addRating(evaluationResult)
 }

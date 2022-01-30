@@ -15,11 +15,11 @@ const (
 )
 
 const (
-	NO_COMMAND = iota
+	NoCommand = iota
 	CHANGE_STATUS_TO_EXPIRED
 )
 
-// Status returns the status of a target.
+// ActualStatus returns the status of a target.
 func (t DiscoveredTarget) ActualStatus() TargetStatus {
 	return TargetStatus(t.Status)
 }

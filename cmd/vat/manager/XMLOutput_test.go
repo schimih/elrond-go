@@ -25,9 +25,9 @@ func TestXMLOutput(t *testing.T) {
 	src := "AnalysisResults.xml"
 	JsonRankedReport, _ := openXMLFile(src, rankedReport)
 
-	require.Equal(t, 3, len(JsonRankedReport.HighRiskNodes))
-	require.Equal(t, 2, len(JsonRankedReport.MediumRiskNodes))
-	require.Equal(t, 1, len(JsonRankedReport.LowRiskNodes))
+	require.Equal(t, 6, len(JsonRankedReport.HighRiskNodes))
+	require.Equal(t, 4, len(JsonRankedReport.MediumRiskNodes))
+	require.Equal(t, 2, len(JsonRankedReport.LowRiskNodes))
 }
 
 func openXMLFile(src string, rankedReport RankedReport) (RankedReport, error) {

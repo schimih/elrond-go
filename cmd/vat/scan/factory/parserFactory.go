@@ -3,7 +3,7 @@ package factory
 import (
 	"github.com/elrond-go/cmd/vat/scan"
 	"github.com/elrond-go/cmd/vat/utils"
-	go_nmap "github.com/lair-framework/go-nmap"
+	gonmap "github.com/lair-framework/go-nmap"
 )
 
 type ParserFactory struct {
@@ -18,7 +18,7 @@ func (pf *ParserFactory) CreateParser(input [][]byte, grammar utils.AnalysisType
 		Input:             input,
 		AnalyzedTargets:   make([]scan.ScannedTarget, 0),
 		Grammar:           grammar,
-		SlicedParsedInput: make([]*go_nmap.NmapRun, 0),
+		SlicedParsedInput: make([]*gonmap.NmapRun, 0),
 	}
 }
 

@@ -12,16 +12,16 @@ type JsonFormatter struct {
 }
 
 func (jF *JsonFormatter) Output(rankedReport RankedReport) error {
-
 	jsonData, _ := json.MarshalIndent(rankedReport, "", " ")
 	err := ioutil.WriteFile("AnalysisResults.json", jsonData, 0644)
 	if err != nil {
-		return fmt.Errorf("Could not write File")
+		return fmt.Errorf("could not write File")
 	}
 
 	path := utils.JsonFilePath
 	log.Info("Evaluated Targets list added to ", "path", path)
 	log.Info("Evaluated", "Nodes", rankedReport.NodesAnalyzed)
+
 	return nil
 }
 

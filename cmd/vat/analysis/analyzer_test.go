@@ -26,7 +26,7 @@ func (fd *FakeDiscoverer) DiscoverNewTargets(existingTargets []DiscoveredTarget)
 }
 
 func (sff *FakeScannerFactory) CreateScanner(target string, analysisType utils.AnalysisType) (Scanner scan.Scanner) {
-	return &scan.ArgNmapScanner{
+	return &scan.NmapScanner{
 		Name:   "TCP-SSH",
 		Target: target,
 		Status: utils.NOT_STARTED,

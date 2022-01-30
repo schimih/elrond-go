@@ -15,21 +15,15 @@ type PoliteScanner struct {
 
 // Run polite ssh scan
 func (pS *PoliteScanner) Scan() (res []byte, err error) {
-
 	sshConfig := &ssh.ClientConfig{
 		User: pS.User,
 		Auth: []ssh.AuthMethod{ssh.Password(pS.Pwd)},
 	}
-	// try with InsecureIgnoreHostKey first
-	sshConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", pS.Host), sshConfig)
-	if err != nil {
-		return nil, err
-	}
 
-	_, err = client.NewSession()
+	// InsecureIgnoreHostKey returns a function that can be used for ClientConfig.HostKeyCallback to accept any host key.
+	sshConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+	_, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", pS.Host, pS.Port), sshConfig)
 	if err != nil {
-		client.Close()
 		return nil, err
 	}
 

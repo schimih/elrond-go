@@ -9,15 +9,15 @@ import (
 
 var log = logger.GetOrCreate("vat")
 
-type EvaluationReport struct {
+type Report struct {
 	evaluatorFactory EvaluatorFactory
 	EvaluatedTargets []EvaluatedTarget
 	scannerFactory   analysis.ScannerFactory
 	evaluationType   utils.EvaluationType
 }
 
-func NewEvaluationReport(eF EvaluatorFactory, sF analysis.ScannerFactory) EvaluationReport {
-	return EvaluationReport{
+func NewEvaluationReport(eF EvaluatorFactory, sF analysis.ScannerFactory) Report {
+	return Report{
 		evaluatorFactory: eF,
 		EvaluatedTargets: make([]EvaluatedTarget, 0),
 		scannerFactory:   sF,
@@ -25,22 +25,19 @@ func NewEvaluationReport(eF EvaluatorFactory, sF analysis.ScannerFactory) Evalua
 	}
 }
 
-func (eR *EvaluationReport) RunEvaluation(scanResults []scan.ScannedTarget, evaluationType utils.EvaluationType) (EvaluatedTargets []EvaluatedTarget) {
+func (eR *Report) RunEvaluation(scanResults []scan.ScannedTarget, evaluationType utils.EvaluationType) (EvaluatedTargets []EvaluatedTarget, err error) {
 	eR.evaluationType = evaluationType
-	switch eR.evaluationType {
-	case utils.PortStatusEvaluation:
-		eR.prepareEvaluation(scanResults)
-	case utils.Polite_PortAndSshEvaluation:
-		eR.prepareEvaluation(scanResults)
-	case utils.NoEvaluation:
+	if eR.evaluationType != utils.NoEvaluation {
+		eR.runEvaluation(scanResults)
+	} else {
 		log.Error("No Evaluation Type given - Please choose evaluation type")
-	default:
-		log.Error("Unknown Evaluation Type")
+		return nil, utils.ErrNoEvaluationType
 	}
-	return eR.EvaluatedTargets
+
+	return eR.EvaluatedTargets, nil
 }
 
-func (eR *EvaluationReport) prepareEvaluation(scanResults []scan.ScannedTarget) {
+func (eR *Report) runEvaluation(scanResults []scan.ScannedTarget) {
 	for _, scannedTarget := range scanResults {
 		if !find(scannedTarget.Address, eR.EvaluatedTargets) {
 			eR.populateReport(scannedTarget)
@@ -48,14 +45,14 @@ func (eR *EvaluationReport) prepareEvaluation(scanResults []scan.ScannedTarget) 
 	}
 }
 
-func (eR *EvaluationReport) populateReport(scannedTarget scan.ScannedTarget) {
+func (eR *Report) populateReport(scannedTarget scan.ScannedTarget) {
 	evaluator := eR.evaluatorFactory.CreateEvaluator(scannedTarget.Address, scannedTarget.Ports, eR.evaluationType, eR.scannerFactory)
 	eR.EvaluatedTargets = append(eR.EvaluatedTargets, evaluator.Evaluate())
 }
 
 func find(needle string, haystack []EvaluatedTarget) bool {
-	for _, EvaluationTarget := range haystack {
-		if needle == EvaluationTarget.Address {
+	for _, evaluationTarget := range haystack {
+		if needle == evaluationTarget.Address {
 			return true
 		}
 	}
@@ -63,6 +60,6 @@ func find(needle string, haystack []EvaluatedTarget) bool {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (eR *EvaluationReport) IsInterfaceNil() bool {
+func (eR *Report) IsInterfaceNil() bool {
 	return eR == nil
 }

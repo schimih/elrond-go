@@ -35,9 +35,11 @@ func (rR *RankedReport) SortAndPopulate(evaluatedTargets []evaluation.EvaluatedT
 		default:
 			rR.HighRiskNodes = append(rR.HighRiskNodes, evaluatedTarget)
 		}
-		rR.NodesAnalyzed++
 	}
 
+	rR.NodesAnalyzed = len(evaluatedTargets)
+
+	// sort nodes from high risk to low risk
 	sort.Slice(rR.LowRiskNodes, func(i, j int) bool {
 		return rR.LowRiskNodes[i].Score < rR.LowRiskNodes[j].Score
 	})

@@ -2,7 +2,7 @@ package scan
 
 import (
 	"github.com/elrond-go/cmd/vat/utils"
-	go_nmap "github.com/lair-framework/go-nmap"
+	gonmap "github.com/lair-framework/go-nmap"
 )
 
 type Port struct {
@@ -17,7 +17,7 @@ type Port struct {
 
 type Ports struct {
 	Ports []Port
-	Host  go_nmap.Host
+	Host  gonmap.Host
 }
 
 func NewPort(id uint,
@@ -37,7 +37,7 @@ func NewPort(id uint,
 	}
 }
 
-func createPortSlice(host go_nmap.Host) Ports {
+func createPortSlice(host gonmap.Host) Ports {
 	return Ports{
 		Ports: make([]Port, 0),
 		Host:  host,
@@ -78,5 +78,5 @@ func (p *Port) isPortInRange(low int, high int) bool {
 
 // Status returns the status of a port.
 func (p Port) Status() utils.PortStatus {
-	return utils.PortStatus(p.State)
+	return p.State
 }

@@ -4,19 +4,19 @@ import (
 	"strings"
 
 	"github.com/elrond-go/cmd/vat/utils"
-	go_nmap "github.com/lair-framework/go-nmap"
+	gonmap "github.com/lair-framework/go-nmap"
 )
 
 type ParserData struct {
 	Input             [][]byte
 	AnalyzedTargets   []ScannedTarget
 	Grammar           utils.AnalysisType
-	SlicedParsedInput []*go_nmap.NmapRun
+	SlicedParsedInput []*gonmap.NmapRun
 }
 
 func (pD *ParserData) Parse() (parsingResults []ScannedTarget) {
 	for _, byteArray := range pD.Input {
-		parsedNmapResult, err := go_nmap.Parse(byteArray)
+		parsedNmapResult, err := gonmap.Parse(byteArray)
 		if err != nil {
 			if !strings.Contains(err.Error(), "exit status 1") {
 				log.Error(err.Error())
@@ -38,10 +38,10 @@ func (pD *ParserData) translateInput() {
 	}
 }
 
-func (pD *ParserData) translateTarget(id int, host go_nmap.Host) {
+func (pD *ParserData) translateTarget(id int, host gonmap.Host) {
 	pS := createPortSlice(host)
 	translatedPortSlice := pS.translatePortSlice()
-	analyzedTarget := NewScannedTarget(uint(id), host.Addresses[0].Addr, translatedPortSlice, host.Status.State, utils.SCANNED, pD.Grammar)
+	analyzedTarget := NewScannedTarget(uint(id), host.Addresses[0].Addr, translatedPortSlice, utils.SCANNED, pD.Grammar)
 	pD.AnalyzedTargets = append(pD.AnalyzedTargets, analyzedTarget)
 }
 

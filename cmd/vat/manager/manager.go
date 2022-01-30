@@ -9,8 +9,6 @@ import (
 	"github.com/elrond-go/cmd/vat/utils"
 )
 
-var minutesInADay = 1440
-
 type AnalysisManager struct {
 	Start               time.Time
 	TimeUntilExpiration time.Duration
@@ -26,10 +24,10 @@ type AnalysisManager struct {
 }
 
 func NewAnalysisManager(fF *FormatterFactory) (*AnalysisManager, error) {
-
 	if check.IfNil(fF) {
 		return nil, fmt.Errorf("FormatterFactory needed")
 	}
+
 	rankedReport := NewRankedReport()
 	return &AnalysisManager{
 		Start:               time.Now(),
@@ -38,7 +36,7 @@ func NewAnalysisManager(fF *FormatterFactory) (*AnalysisManager, error) {
 		AnalysisLoops:       0,
 		RankedReport:        rankedReport,
 		FormatterFactory:    fF,
-		AnalysisType:        utils.TCP_REQ1,                    // by default go with TCP_WEB -> this has to be controled by manager
+		AnalysisType:        utils.TCP_REQ1,                    // by default go with TCP_WEB -> this has to be controlled by manager
 		EvaluationType:      utils.Polite_PortAndSshEvaluation, // by default go with PortStatusEvaluation
 		FormatType:          utils.Table,
 		ExpireNextRun:       false,
@@ -50,19 +48,22 @@ func NewAnalysisManager(fF *FormatterFactory) (*AnalysisManager, error) {
 //
 // - tbd - decide when discovered targets are expired so that they should be re-analyzed
 //
-// - plan the charactestics of the next round
+// - plan the characteristics of the next round
 //
 // - create and control the formatter -
 //
 // - evaluate the status of the entire elrond ecosystem
 //
-// - organize results ... etc etc.
+// - organize results ... etc. etc.
 func (aM *AnalysisManager) CompleteRound(evaluatedTargets []evaluation.EvaluatedTarget) {
 
 	aM.RankedReport.SortAndPopulate(evaluatedTargets)
 
 	formatter := aM.FormatterFactory.CreateFormatter(aM.FormatType)
-	formatter.Output(aM.RankedReport)
+	err := formatter.Output(aM.RankedReport)
+	if err != nil {
+		return
+	}
 
 	aM.AnalysisLoops++
 	aM.RankedReport = RankedReport{}

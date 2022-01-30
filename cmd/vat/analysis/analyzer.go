@@ -36,7 +36,7 @@ func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory) (*A
 
 	a := &Analyzer{}
 	a.discoverer = discoverer
-	a.ManagerCommand = NO_COMMAND
+	a.ManagerCommand = NoCommand
 	a.DiscoveredTargets = make([]DiscoveredTarget, 0)
 	a.scannerFactory = sf
 	a.parserFactory = pf

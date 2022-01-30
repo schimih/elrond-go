@@ -22,31 +22,41 @@ type EvaluatedTarget struct {
 }
 
 func (eT *EvaluatedTarget) Evaluate() EvaluatedTarget {
-
 	eT.Score -= eT.calculateDeductionPoints()
-
 	eT.SecurityLevel = eT.calculateSecurityLevel()
 	eT.Status = string(utils.EVALUATED)
 	return *eT
 }
 
 func (eT *EvaluatedTarget) calculateDeductionPoints() (deductionPoints int) {
-	sshJudgement := utils.JudgementFromPort
+	judgement := utils.JudgementFromPort
 	deductionPoints = 0
+
 	for _, port := range eT.Ports {
 		if port.State == utils.Open {
-			if (port.Number == 22) && (eT.EvaluationType == utils.Polite_PortAndSshEvaluation) {
-				sshJudgement = eT.runPoliteSshCheck()
-			} else if (port.Number == 22) && (eT.EvaluationType == utils.Brute_PortAndSshEvaluation) {
-				sshJudgement = eT.runBruteForceSshCheck()
+			if eT.requestedSpecialCheck(port.Number) {
+				judgement = eT.runSpecialCheck()
 			} else {
-				sshJudgement = utils.JudgementFromPort
+				judgement = utils.JudgementFromPort
 			}
-
-			deductionPoints += eT.runJudgement(port.Importance, sshJudgement)
+			deductionPoints += eT.runJudgement(port.Importance, judgement)
 		}
 	}
+
 	return
+}
+
+func (eT *EvaluatedTarget) requestedSpecialCheck(portNumber int) bool {
+	return ((portNumber == 22) && (eT.EvaluationType == utils.Polite_PortAndSshEvaluation)) ||
+		((portNumber == 22) && (eT.EvaluationType == utils.Brute_PortAndSshEvaluation))
+}
+
+func (eT *EvaluatedTarget) runSpecialCheck() (judgement utils.Judgement) {
+	if eT.EvaluationType == utils.Polite_PortAndSshEvaluation {
+		return eT.runPoliteSshCheck()
+	} else {
+		return eT.runBruteForceSshCheck()
+	}
 }
 
 func (eT *EvaluatedTarget) runPoliteSshCheck() (judgement utils.Judgement) {
@@ -54,20 +64,26 @@ func (eT *EvaluatedTarget) runPoliteSshCheck() (judgement utils.Judgement) {
 
 	_, err := s.Scan()
 	if err != nil {
-		errSlice := strings.Split(err.Error(), " ")
-		if errSlice[9] == "[none]," {
-			return utils.JudgementSshUserPermited
-		} else if (errSlice[9] == "[none") && (errSlice[10] == "password],") {
-			return utils.JudgementSshPwdPermited
-		} else {
-			return utils.JudgementFromPort
-		}
+		return interpretErrorGravity(err)
 	}
+
 	return utils.JudgementDummyPermited
 }
 
+func interpretErrorGravity(err error) (judgement utils.Judgement) {
+	errSlice := strings.Split(err.Error(), " ")
+
+	if errSlice[9] == "[none]," {
+		return utils.JudgementSshUserPermited
+	} else if (errSlice[9] == "[none") && (errSlice[10] == "password],") {
+		return utils.JudgementSshPwdPermited
+	} else {
+		return utils.JudgementFromPort
+	}
+}
+
 // BruteForce was never called => the result interpretation has not been done.
-// Has to be checked with the team if permited.
+// Has to be checked with the team if permitted.
 func (eT *EvaluatedTarget) runBruteForceSshCheck() (judgement utils.Judgement) {
 	s := eT.scannerFactory.CreateScanner(eT.Address, utils.TCP_BRUTE_REQ1)
 
@@ -80,20 +96,20 @@ func (eT *EvaluatedTarget) runBruteForceSshCheck() (judgement utils.Judgement) {
 	return
 }
 
-func (eT *EvaluatedTarget) runJudgement(portJudgement utils.Judgement, sshCheckJudgement utils.Judgement) (synopsis int) {
-	if sshCheckJudgement == utils.JudgementFromPort {
-		eT.Judgements = append(eT.Judgements, fmt.Sprintf(string(portJudgement)))
-	} else {
-		eT.Judgements = append(eT.Judgements, fmt.Sprintf(string(sshCheckJudgement)))
-		eT.Judgements = append(eT.Judgements, fmt.Sprintf(string(portJudgement)))
+func (eT *EvaluatedTarget) runJudgement(portJudgement utils.Judgement, checkJudgement utils.Judgement) (synopsis int) {
+	if checkJudgement != utils.JudgementFromPort {
+		eT.Judgements = append(eT.Judgements, fmt.Sprintf(string(checkJudgement)))
 	}
 
-	return extractNumber(string(portJudgement)) + extractNumber(string(sshCheckJudgement))
+	eT.Judgements = append(eT.Judgements, fmt.Sprintf(string(portJudgement)))
+
+	return extractNumber(string(portJudgement)) + extractNumber(string(checkJudgement))
 }
 
 func extractNumber(judgement string) int {
 	slice := strings.Split(judgement, "$ ")
 	i, _ := strconv.Atoi(slice[0])
+
 	return i
 }
 

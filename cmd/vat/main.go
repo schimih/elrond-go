@@ -51,7 +51,7 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal) {
 
 	report := evaluation.NewEvaluationReport(eF, sF)
 
-	manager, _ := manager.NewAnalysisManager(fF)
+	vatManager, _ := manager.NewAnalysisManager(fF)
 	for {
 		select {
 		case <-stop:
@@ -59,9 +59,9 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal) {
 			return
 		case <-time.After(time.Second * 5):
 			a.DiscoverTargets()
-			analyzedTargets := a.AnalyzeNewlyDiscoveredTargets(manager.AnalysisType)
-			evaluatedTargets := report.RunEvaluation(analyzedTargets, manager.EvaluationType)
-			manager.CompleteRound(evaluatedTargets)
+			analyzedTargets := a.AnalyzeNewlyDiscoveredTargets(vatManager.AnalysisType)
+			evaluatedTargets, _ := report.RunEvaluation(analyzedTargets, vatManager.EvaluationType)
+			vatManager.CompleteRound(evaluatedTargets)
 		}
 	}
 }
@@ -91,7 +91,7 @@ func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2
 
 func startSeedNode() (messenger p2p.Messenger, err error) {
 
-	generalConfig, err := loadMainConfig("./config/config.toml")
+	generalConfig, err := loadMainConfig("./cmd/vat/config/config.toml")
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func startSeedNode() (messenger p2p.Messenger, err error) {
 
 	log.Info("Starting Seed Node")
 
-	p2pConfig, err := common.LoadP2PConfig("./config/p2p.toml")
+	p2pConfig, err := common.LoadP2PConfig("./cmd/vat/config/p2p.toml")
 	if err != nil {
 		return nil, err
 	}

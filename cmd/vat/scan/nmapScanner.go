@@ -9,32 +9,25 @@ import (
 
 var log = logger.GetOrCreate("vat")
 
-type ArgNmapScanner struct {
+type NmapScanner struct {
 	Name   string
 	Target string
 	Status utils.ScannerStatus
 	Cmd    string
 }
 
-type nmapScanner struct {
-	name   string
-	target string
-	status utils.ScannerStatus
-	cmd    string
-}
-
-func (s *ArgNmapScanner) preScan() {
+func (s *NmapScanner) preScan() {
 	s.Status = utils.IN_PROGRESS
 }
-func (s *ArgNmapScanner) postScan() {
+func (s *NmapScanner) postScan() {
 	s.Status = utils.FINISHED
 }
 
 // Run nmap scan
-func (s *ArgNmapScanner) Scan() (res []byte, err error) {
+func (s *NmapScanner) Scan() (res []byte, err error) {
 	s.preScan()
-	res, error := shellCmd(s.Cmd)
-	if error != nil {
+	res, err = shellCmd(s.Cmd)
+	if err != nil {
 		return nil, err
 	}
 
@@ -52,11 +45,6 @@ func shellCmd(cmd string) (res []byte, err error) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (s *nmapScanner) IsInterfaceNil() bool {
-	return s == nil
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (s *ArgNmapScanner) IsInterfaceNil() bool {
+func (s *NmapScanner) IsInterfaceNil() bool {
 	return s == nil
 }
