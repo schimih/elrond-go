@@ -1,24 +1,24 @@
-package manager
+package export
 
 import (
-	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/elrond-go/cmd/vat/utils"
 )
 
-type JsonFormatter struct {
+type XMLFormatter struct {
 }
 
-func (jF *JsonFormatter) Output(rankedReport RankedReport) error {
-	jsonData, _ := json.MarshalIndent(rankedReport, "", " ")
-	err := ioutil.WriteFile("AnalysisResults.json", jsonData, 0644)
+func (xF *XMLFormatter) Output(rankedReport RankedReport) error {
+	xmlData, _ := xml.MarshalIndent(rankedReport, "", " ")
+
+	err := ioutil.WriteFile("AnalysisResults.xml", xmlData, 0644)
 	if err != nil {
 		return fmt.Errorf("could not write File")
 	}
-
-	path := utils.JsonFilePath
+	path := utils.XMLFilePath
 	log.Info("Evaluated Targets list added to ", "path", path)
 	log.Info("Evaluated", "Nodes", rankedReport.NodesAnalyzed)
 
@@ -26,6 +26,6 @@ func (jF *JsonFormatter) Output(rankedReport RankedReport) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (jF *JsonFormatter) IsInterfaceNil() bool {
-	return jF == nil
+func (xF *XMLFormatter) IsInterfaceNil() bool {
+	return xF == nil
 }

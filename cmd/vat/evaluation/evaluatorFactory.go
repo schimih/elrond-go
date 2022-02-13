@@ -18,13 +18,8 @@ func NewEvaluatorFactory() EvaluatorFactory {
 
 func (eF *EvaluatorFactory) CreateEvaluator(address string, ports []scan.Port, evaluationType utils.EvaluationType, sF analysis.ScannerFactory) Evaluator {
 	return &EvaluatedTarget{
-		Address:        address,
-		Ports:          ports,
-		Status:         string(utils.NEW),
-		Score:          initialRating,
-		SecurityLevel:  utils.HIGH,
-		Judgements:     make([]string, 0),
-		EvaluationType: evaluationType,
+		identity:       newIdentity(address, ports),
+		evaluation:     newEvaluationResult(evaluationType),
 		scannerFactory: sF,
 	}
 }

@@ -1,28 +1,19 @@
 package scan
 
-import (
-	"fmt"
-
-	"golang.org/x/crypto/ssh"
-)
+import "sync"
 
 type PoliteScanner struct {
-	Host string
-	Port int
-	User string
-	Pwd  string
+	mutScanner sync.Mutex
+	Host       string
 }
 
 // Run polite ssh scan
 func (pS *PoliteScanner) Scan() (res []byte, err error) {
-	sshConfig := &ssh.ClientConfig{
-		User: pS.User,
-		Auth: []ssh.AuthMethod{ssh.Password(pS.Pwd)},
-	}
+	pS.mutScanner.Lock()
+	defer pS.mutScanner.Unlock()
 
-	// InsecureIgnoreHostKey returns a function that can be used for ClientConfig.HostKeyCallback to accept any host key.
-	sshConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-	_, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", pS.Host, pS.Port), sshConfig)
+	dialer := newDialer(pS.Host)
+	err = dialer.Dial()
 	if err != nil {
 		return nil, err
 	}

@@ -10,20 +10,20 @@ import (
 )
 
 func TestNewEvaluationReport(t *testing.T) {
-	evaluationReport := Report{
+	evaluationReport := report{
 		evaluatorFactory: NewEvaluatorFactory(),
-		EvaluatedTargets: make([]EvaluatedTarget, 0),
+		evaluatedTargets: make([]EvaluatedTarget, 0),
 		scannerFactory:   factory.NewScannerFactory(),
 		evaluationType:   utils.NoEvaluation,
 	}
 
-	newEvaluationReport := NewEvaluationReport(NewEvaluatorFactory(), factory.NewScannerFactory())
+	newEvaluationReport := NewReport(NewEvaluatorFactory(), factory.NewScannerFactory())
 
 	assert.Equal(t, evaluationReport, newEvaluationReport)
 }
 
 func TestRunEvaluation(t *testing.T) {
-	newEvaluationReport := NewEvaluationReport(NewEvaluatorFactory(), factory.NewScannerFactory())
+	newEvaluationReport := NewReport(NewEvaluatorFactory(), factory.NewScannerFactory())
 
 	someEmptyScannedResults := make([]scan.ScannedTarget, 1)
 	evaluatedTargets, err := newEvaluationReport.RunEvaluation(someEmptyScannedResults, utils.Polite_PortAndSshEvaluation)
@@ -33,7 +33,7 @@ func TestRunEvaluation(t *testing.T) {
 }
 
 func TestRunEvaluation_NoEvaluation(t *testing.T) {
-	newEvaluationReport := NewEvaluationReport(NewEvaluatorFactory(), factory.NewScannerFactory())
+	newEvaluationReport := NewReport(NewEvaluatorFactory(), factory.NewScannerFactory())
 
 	someEmptyScannedResults := make([]scan.ScannedTarget, 1)
 	evaluatedTargets, err := newEvaluationReport.RunEvaluation(someEmptyScannedResults, utils.NoEvaluation)

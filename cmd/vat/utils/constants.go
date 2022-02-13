@@ -115,14 +115,14 @@ const (
 type Judgement string
 
 const (
-	JudgementSshUserPermited Judgement = "5$ SMALL RISK - SSH User permitted"
-	JudgementSshPwdPermited  Judgement = "25$ HIGH RISK - SSH PasswordAuthentication active"
-	JudgementDummyPermited   Judgement = "50$ ALERT - Dummy values for test have been accepted"
-	JudgementMediumRisk      Judgement = "10$ MEDIUM RISK - Port Outside Elrond Permited ports Open"
-	JudgementWeb             Judgement = "5$ SMALL RISK - Tcp-Web Port Open"
-	JudgementSsh             Judgement = "5$ SMALL RISK - SSH Port Open"
-	JudgementNoRisk          Judgement = "0$ NO RISK - Elrond Port Open"
-	JudgementFromPort        Judgement = "0$"
+	JudgementSshUserPermited Judgement = "5 points deducted - SMALL RISK: SSH User permitted"
+	JudgementSshPwdPermited  Judgement = "25 points deducted - HIGH RISK - SSH PasswordAuthentication active"
+	JudgementDummyPermited   Judgement = "50 points deducted - ALERT - Dummy values for test have been accepted"
+	JudgementMediumRisk      Judgement = "10 points deducted - MEDIUM RISK - Port Outside Elrond Permited ports Open"
+	JudgementWeb             Judgement = "5 points deducted - SMALL RISK - Tcp-Web Port Open"
+	JudgementSsh             Judgement = "5 points deducted - SMALL RISK - SSH Port Open"
+	JudgementNoRisk          Judgement = "0 points deducted - NO RISK - Elrond Port Open"
+	JudgementFromPort        Judgement = "0 points deducted - "
 )
 
 type SecureLevel int

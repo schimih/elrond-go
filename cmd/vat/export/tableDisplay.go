@@ -1,4 +1,4 @@
-package manager
+package export
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ func (tF *TableFormatter) Output(rankedReport RankedReport) error {
 
 	tF.header = []string{"Index", "Address", "Port", "Status", "Service"}
 
-	for idx, evaluationTarget := range rankedReport.GetAllEvaluatedTargets() {
+	for idx, evaluationTarget := range rankedReport.getAllEvaluatedTargets() {
 		tF.addTargetToTable(idx, evaluationTarget)
 	}
 
@@ -37,31 +37,31 @@ func (tF *TableFormatter) Output(rankedReport RankedReport) error {
 func (tF *TableFormatter) addTargetToTable(id int, evaluationResult evaluation.EvaluatedTarget) {
 	var line *display.LineData
 
-	if len(evaluationResult.Ports) != 0 {
-		for jdx, tPort := range evaluationResult.Ports {
-			horizontalLineAfter := jdx == len(evaluationResult.Ports)-1
-			if jdx == 0 {
-				line = display.NewLineData(horizontalLineAfter, []string{
-					fmt.Sprintf("%d", id),
-					evaluationResult.Address,
-					fmt.Sprintf("%d", tPort.Number),
-					string(tPort.State),
-					tPort.Protocol})
-			} else {
-				line = display.NewLineData(horizontalLineAfter, []string{
-					"",
-					"",
-					fmt.Sprintf("%d", tPort.Number),
-					string(tPort.State),
-					tPort.Protocol})
-			}
-			tF.dataLines = append(tF.dataLines, line)
-		}
-	} else {
+	if len(evaluationResult.GetPortsSlice()) == 0 {
 		line = display.NewLineData(true, []string{
 			fmt.Sprintf("%d", id),
-			evaluationResult.Address,
+			evaluationResult.GetAddress(),
 			"NO ACCESSIBLE PORTS"})
+		tF.dataLines = append(tF.dataLines, line)
+	}
+
+	for jdx, tPort := range evaluationResult.GetPortsSlice() {
+		horizontalLineAfter := jdx == len(evaluationResult.GetPortsSlice())-1
+		if jdx == 0 {
+			line = display.NewLineData(horizontalLineAfter, []string{
+				fmt.Sprintf("%d", id),
+				evaluationResult.GetAddress(),
+				fmt.Sprintf("%d", tPort.Number),
+				string(tPort.State),
+				tPort.Protocol})
+		} else {
+			line = display.NewLineData(horizontalLineAfter, []string{
+				"",
+				"",
+				fmt.Sprintf("%d", tPort.Number),
+				string(tPort.State),
+				tPort.Protocol})
+		}
 		tF.dataLines = append(tF.dataLines, line)
 	}
 
@@ -74,12 +74,12 @@ func (tF *TableFormatter) addRating(evaluationResult evaluation.EvaluatedTarget)
 		">>>>>>>>>>>",
 		">>>>>",
 		"RATING",
-		fmt.Sprintf("%d", evaluationResult.Score)})
+		fmt.Sprintf("%d", evaluationResult.GetScore())})
 	tF.dataLines = append(tF.dataLines, totalLine)
 }
 
 func (tF *TableFormatter) addJudgement(evaluationResult evaluation.EvaluatedTarget) {
-	for _, judgement := range evaluationResult.Judgements {
+	for _, judgement := range evaluationResult.GetJudgements() {
 		judgementLine := display.NewLineData(false, []string{"", "", "", "", judgement})
 		tF.dataLines = append(tF.dataLines, judgementLine)
 	}

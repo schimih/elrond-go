@@ -1,4 +1,4 @@
-package manager
+package export
 
 import (
 	"encoding/xml"
@@ -19,7 +19,9 @@ func TestXMLOutput(t *testing.T) {
 	testTargetsSlice := CreateEvaluatedTargetsTestSlice(3, utils.LOW, utils.Closed, 3)
 	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(2, utils.MID, utils.Closed, 5)...)
 	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Closed, 5)...)
-	rankedReport.SortAndPopulate(testTargetsSlice)
+	rankedReport.populateReport(testTargetsSlice)
+	rankedReport.NodesAnalyzed = len(testTargetsSlice)
+	rankedReport.sortReport()
 
 	formatter.Output(rankedReport)
 	src := "AnalysisResults.xml"

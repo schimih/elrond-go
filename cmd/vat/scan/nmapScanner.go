@@ -2,6 +2,7 @@ package scan
 
 import (
 	"os/exec"
+	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/elrond-go/cmd/vat/utils"
@@ -10,10 +11,11 @@ import (
 var log = logger.GetOrCreate("vat")
 
 type NmapScanner struct {
-	Name   string
-	Target string
-	Status utils.ScannerStatus
-	Cmd    string
+	mutScanner sync.Mutex
+	Name       string
+	Target     string
+	Status     utils.ScannerStatus
+	Cmd        string
 }
 
 func (s *NmapScanner) preScan() {
@@ -25,6 +27,8 @@ func (s *NmapScanner) postScan() {
 
 // Run nmap scan
 func (s *NmapScanner) Scan() (res []byte, err error) {
+	s.mutScanner.Lock()
+	defer s.mutScanner.Unlock()
 	s.preScan()
 	res, err = shellCmd(s.Cmd)
 	if err != nil {

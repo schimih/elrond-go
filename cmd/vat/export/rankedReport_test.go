@@ -1,4 +1,4 @@
-package manager
+package export
 
 import (
 	"testing"
@@ -19,7 +19,10 @@ func TestRankedReport_SortAndPopulateOneLowRiskTarget(t *testing.T) {
 	rankedReport := NewRankedReport()
 
 	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Open, 5)
-	rankedReport.SortAndPopulate(testTargetsSlice)
+
+	rankedReport.populateReport(testTargetsSlice)
+	rankedReport.NodesAnalyzed = len(testTargetsSlice)
+	rankedReport.sortReport()
 
 	require.Equal(t, 1, len(rankedReport.LowRiskNodes))
 	require.Equal(t, 0, len(rankedReport.MediumRiskNodes))
@@ -30,7 +33,9 @@ func TestRankedReport_SortAndPopulateTwoLowRiskTargets(t *testing.T) {
 	rankedReport := NewRankedReport()
 
 	testTargetsSlice := CreateEvaluatedTargetsTestSlice(2, utils.HIGH, utils.Open, 5)
-	rankedReport.SortAndPopulate(testTargetsSlice)
+	rankedReport.populateReport(testTargetsSlice)
+	rankedReport.NodesAnalyzed = len(testTargetsSlice)
+	rankedReport.sortReport()
 
 	require.Equal(t, 2, len(rankedReport.LowRiskNodes))
 	require.Equal(t, 0, len(rankedReport.MediumRiskNodes))
@@ -41,7 +46,9 @@ func TestRankedReport_SortAndPopulateTwoMediumRiskTargets(t *testing.T) {
 	rankedReport := NewRankedReport()
 
 	testTargetsSlice := CreateEvaluatedTargetsTestSlice(2, utils.MID, utils.Open, 5)
-	rankedReport.SortAndPopulate(testTargetsSlice)
+	rankedReport.populateReport(testTargetsSlice)
+	rankedReport.NodesAnalyzed = len(testTargetsSlice)
+	rankedReport.sortReport()
 
 	require.Equal(t, 0, len(rankedReport.LowRiskNodes))
 	require.Equal(t, 2, len(rankedReport.MediumRiskNodes))
@@ -52,7 +59,9 @@ func TestRankedReport_SortAndPopulateTwoHighRiskTargets(t *testing.T) {
 	rankedReport := NewRankedReport()
 
 	testTargetsSlice := CreateEvaluatedTargetsTestSlice(2, utils.LOW, utils.Open, 5)
-	rankedReport.SortAndPopulate(testTargetsSlice)
+	rankedReport.populateReport(testTargetsSlice)
+	rankedReport.NodesAnalyzed = len(testTargetsSlice)
+	rankedReport.sortReport()
 
 	require.Equal(t, 0, len(rankedReport.LowRiskNodes))
 	require.Equal(t, 0, len(rankedReport.MediumRiskNodes))
@@ -65,9 +74,11 @@ func TestRankedReport_GetAllEvaluatedTargets(t *testing.T) {
 	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, utils.LOW, utils.Open, 5)
 	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.MID, utils.Open, 5)...)
 	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Open, 5)...)
-	rankedReport.SortAndPopulate(testTargetsSlice)
+	rankedReport.populateReport(testTargetsSlice)
+	rankedReport.NodesAnalyzed = len(testTargetsSlice)
+	rankedReport.sortReport()
 
-	allEvaluatedTargetsFromTestReport := rankedReport.GetAllEvaluatedTargets()
+	allEvaluatedTargetsFromTestReport := rankedReport.getAllEvaluatedTargets()
 
 	require.Equal(t, 3, len(allEvaluatedTargetsFromTestReport))
 }
@@ -86,12 +97,8 @@ func CreateEvaluatedTargetsTestSlice(targets int, risk utils.SecureLevel, portSt
 	}
 
 	target := evaluation.EvaluatedTarget{
-		Address:       "Test_Address",
-		Ports:         ports,
-		Status:        "test",
-		Score:         100,
-		SecurityLevel: risk,
-		Judgements:    judgements,
+		//identity:   newIdentity("test", ports),
+		//evaluation: newEvaluationResult(utils.NoEvaluation),
 	}
 	for i := 0; i < targets; i++ {
 		testTargets = append(testTargets, target)

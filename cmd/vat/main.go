@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/elrond-go/cmd/vat/analysis"
 	"github.com/elrond-go/cmd/vat/evaluation"
-	"github.com/elrond-go/cmd/vat/manager"
+	"github.com/elrond-go/cmd/vat/export"
 	"github.com/elrond-go/cmd/vat/scan/factory"
 )
 
@@ -31,7 +31,7 @@ func main() {
 	// Start seednode
 	messenger, err := startSeedNode()
 	if err != nil {
-		log.Error("Could not start seed Node")
+		log.Error("could not start seed node", "error", err)
 	}
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -42,26 +42,34 @@ func main() {
 }
 
 func mainLoop(messenger p2p.Messenger, stop chan os.Signal) {
+	timer := time.NewTimer(time.Second * 5)
+	defer timer.Stop()
+
 	sF := factory.NewScannerFactory()
 	pF := factory.NewParserFactory()
-	eF := evaluation.NewEvaluatorFactory()
-	fF := manager.NewFormatterFactory()
 	d := analysis.NewP2pDiscoverer(messenger)
 	a, _ := analysis.NewAnalyzer(d, sF, pF)
 
-	report := evaluation.NewEvaluationReport(eF, sF)
+	eF := evaluation.NewEvaluatorFactory()
+	report := evaluation.NewReport(eF, sF)
 
-	vatManager, _ := manager.NewAnalysisManager(fF)
+	fF := export.NewFormatterFactory()
+	vatExport, _ := export.NewAnalysisManager(fF)
+
 	for {
+		interval := time.Second * 5
+
+		analyzedTargets := a.StartJob(vatExport.AnalysisType)
+		evaluatedTargets, _ := report.RunEvaluation(analyzedTargets, vatExport.EvaluationType)
+		vatExport.CompleteRound(evaluatedTargets)
+
+		timer.Reset(interval)
+
 		select {
+		case <-timer.C:
 		case <-stop:
 			log.Info("terminating at user's signal...")
 			return
-		case <-time.After(time.Second * 5):
-			a.DiscoverTargets()
-			analyzedTargets := a.AnalyzeNewlyDiscoveredTargets(vatManager.AnalysisType)
-			evaluatedTargets, _ := report.RunEvaluation(analyzedTargets, vatManager.EvaluationType)
-			vatManager.CompleteRound(evaluatedTargets)
 		}
 	}
 }
@@ -76,7 +84,7 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
+func createNetworkMessenger(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:          marshalizer,
 		ListenAddress:        libp2p.ListenAddrWithIp4AndTcp,
@@ -108,7 +116,7 @@ func startSeedNode() (messenger p2p.Messenger, err error) {
 		return nil, err
 	}
 
-	messenger, err = createNode(*p2pConfig, internalMarshalizer)
+	messenger, err = createNetworkMessenger(*p2pConfig, internalMarshalizer)
 	if err != nil {
 		return nil, err
 	}

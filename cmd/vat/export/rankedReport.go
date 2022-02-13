@@ -1,4 +1,4 @@
-package manager
+package export
 
 import (
 	"sort"
@@ -25,9 +25,9 @@ func NewRankedReport() RankedReport {
 	}
 }
 
-func (rR *RankedReport) SortAndPopulate(evaluatedTargets []evaluation.EvaluatedTarget) {
+func (rR *RankedReport) populateReport(evaluatedTargets []evaluation.EvaluatedTarget) {
 	for _, evaluatedTarget := range evaluatedTargets {
-		switch evaluatedTarget.SecurityLevel {
+		switch evaluatedTarget.GetSecurityLevel() {
 		case utils.HIGH:
 			rR.LowRiskNodes = append(rR.LowRiskNodes, evaluatedTarget)
 		case utils.MID:
@@ -36,30 +36,30 @@ func (rR *RankedReport) SortAndPopulate(evaluatedTargets []evaluation.EvaluatedT
 			rR.HighRiskNodes = append(rR.HighRiskNodes, evaluatedTarget)
 		}
 	}
-
-	rR.NodesAnalyzed = len(evaluatedTargets)
-
-	// sort nodes from high risk to low risk
-	sort.Slice(rR.LowRiskNodes, func(i, j int) bool {
-		return rR.LowRiskNodes[i].Score < rR.LowRiskNodes[j].Score
-	})
-
-	sort.Slice(rR.MediumRiskNodes, func(i, j int) bool {
-		return rR.MediumRiskNodes[i].Score < rR.MediumRiskNodes[j].Score
-	})
-
-	sort.Slice(rR.HighRiskNodes, func(i, j int) bool {
-		return rR.HighRiskNodes[i].Score < rR.HighRiskNodes[j].Score
-	})
 }
 
-func (rR *RankedReport) GetAllEvaluatedTargets() (evaluatedTargets []evaluation.EvaluatedTarget) {
+func (rR *RankedReport) sortReport() {
+	// sort nodes from high risk to low risk
+	sortSlice(rR.LowRiskNodes)
+
+	sortSlice(rR.MediumRiskNodes)
+
+	sortSlice(rR.HighRiskNodes)
+}
+
+func (rR *RankedReport) getAllEvaluatedTargets() (evaluatedTargets []evaluation.EvaluatedTarget) {
 
 	evaluatedTargets = append(rR.HighRiskNodes, rR.MediumRiskNodes...) // can't concatenate more than 2 slice at once
 
 	evaluatedTargets = append(evaluatedTargets, rR.LowRiskNodes...)
 
 	return append(evaluatedTargets, rR.HiddenNodes...)
+}
+
+func sortSlice(slice []evaluation.EvaluatedTarget) {
+	sort.Slice(slice, func(i, j int) bool {
+		return slice[i].GetScore() < slice[j].GetScore()
+	})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

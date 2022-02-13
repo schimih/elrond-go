@@ -47,26 +47,38 @@ func createPortSlice(host gonmap.Host) Ports {
 func (ps *Ports) translatePortSlice() (portSlice []Port) {
 	for idx, port := range ps.Host.Ports {
 		newPort := NewPort(uint(idx), port.PortId, port.Protocol, utils.PortStatus(port.State.State), port.Owner.Name, utils.Unknown)
-		newPort.depictTypeAndImportance()
+		_ = newPort.depictTypeAndImportance()
 		ps.Ports = append(ps.Ports, newPort)
 	}
 	return ps.Ports
 }
 
-func (p *Port) depictTypeAndImportance() {
+func (p *Port) depictTypeAndImportance() bool {
 	if p.isPortInRange(37373, 38383) {
 		p.Type = utils.ElrondPort
 		p.Importance = utils.JudgementNoRisk
-	} else if (p.Number == 80) || (p.Number == 8080) {
+
+		return true
+	}
+
+	if (p.Number == 80) || (p.Number == 8080) {
 		p.Type = utils.WebPort
 		p.Importance = utils.JudgementWeb
-	} else if p.Number == 22 {
+
+		return true
+	}
+
+	if p.Number == 22 {
 		p.Type = utils.SshPort
 		p.Importance = utils.JudgementSsh
-	} else {
-		p.Type = utils.OutsideElrond
-		p.Importance = utils.JudgementMediumRisk
+
+		return true
 	}
+
+	p.Type = utils.OutsideElrond
+	p.Importance = utils.JudgementMediumRisk
+
+	return true
 }
 
 func (p *Port) isPortInRange(low int, high int) bool {

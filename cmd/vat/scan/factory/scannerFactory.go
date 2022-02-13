@@ -54,9 +54,6 @@ func (factory *ScannerFactory) CreateScanner(target string, analysisType utils.A
 	case utils.TCP_POLITE_REQ1:
 		return &scan.PoliteScanner{
 			Host: target,
-			Port: 22,
-			User: "testUsername",
-			Pwd:  "testPassword",
 		}
 	case utils.TCP_BRUTE_REQ1:
 		return &scan.NmapScanner{

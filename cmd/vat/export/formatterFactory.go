@@ -1,4 +1,4 @@
-package manager
+package export
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/display"
@@ -12,19 +12,19 @@ func NewFormatterFactory() *FormatterFactory {
 	return &FormatterFactory{}
 }
 
-func (fF *FormatterFactory) CreateFormatter(formatType utils.OutputType) Formatter {
+func (fF *FormatterFactory) CreateFormatter(formatType utils.OutputType) (formatter Formatter, err error) {
 	switch formatType {
 	case utils.Table:
 		return &TableFormatter{
 			header:    make([]string, 0),
 			dataLines: make([]*display.LineData, 0),
-		}
+		}, nil
 	case utils.JSON:
-		return &JsonFormatter{}
+		return &JsonFormatter{}, nil
 	case utils.XML:
-		return &XMLFormatter{}
+		return &XMLFormatter{}, nil
 	default:
-		return nil
+		return nil, utils.ErrNoFormatterType
 	}
 }
 

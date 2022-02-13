@@ -22,5 +22,5 @@ func TestCreateEvaluator(t *testing.T) {
 	evaluator := NewFakeEvaluatorFactory.CreateEvaluator("testAddress", createFakePortsSlice(2, utils.Open, utils.SshPort, 2), utils.NoEvaluation, sF)
 	evaluatedTarget := evaluator.Evaluate()
 
-	require.Equal(t, fakeEvaluatedTarget.Status, evaluatedTarget.Status)
+	require.Equal(t, fakeEvaluatedTarget.GetStatus(), evaluatedTarget.GetStatus())
 }

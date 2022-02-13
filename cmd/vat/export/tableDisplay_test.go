@@ -1,4 +1,4 @@
-package manager
+package export
 
 import (
 	"testing"
@@ -18,7 +18,9 @@ func TestTableFormatterOutput(t *testing.T) {
 	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, utils.LOW, utils.Open, 5)
 	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.MID, utils.Open, 5)...)
 	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Open, 5)...)
-	rankedReport.SortAndPopulate(testTargetsSlice)
+	rankedReport.populateReport(testTargetsSlice)
+	rankedReport.NodesAnalyzed = len(testTargetsSlice)
+	rankedReport.sortReport()
 
 	formatter.Output(rankedReport)
 
@@ -47,7 +49,9 @@ func TestTableFormatterOutput_NoAccessiblePort(t *testing.T) {
 	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, utils.LOW, utils.Closed, 0)
 	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.MID, utils.Closed, 5)...)
 	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Closed, 5)...)
-	rankedReport.SortAndPopulate(testTargetsSlice)
+	rankedReport.populateReport(testTargetsSlice)
+	rankedReport.NodesAnalyzed = len(testTargetsSlice)
+	rankedReport.sortReport()
 
 	formatter.Output(rankedReport)
 

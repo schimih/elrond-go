@@ -1,4 +1,4 @@
-package manager
+package export
 
 import (
 	"testing"
@@ -22,7 +22,7 @@ func TestCreateFormatter_TableFormatter(t *testing.T) {
 		header:    make([]string, 0),
 		dataLines: make([]*display.LineData, 0)}
 
-	formatter := fF.CreateFormatter(utils.Table)
+	formatter, _ := fF.CreateFormatter(utils.Table)
 	require.Equal(t, TableFormatter, formatter)
 }
 
@@ -30,7 +30,7 @@ func TestCreateFormatter_JsonFormatter(t *testing.T) {
 	fF := NewFormatterFactory()
 	Jsonformatter := &JsonFormatter{}
 
-	formatter := fF.CreateFormatter(utils.JSON)
+	formatter, _ := fF.CreateFormatter(utils.JSON)
 	require.Equal(t, Jsonformatter, formatter)
 }
 
@@ -38,13 +38,13 @@ func TestCreateFormatter_XMLFormatter(t *testing.T) {
 	fF := NewFormatterFactory()
 	XMLFormatter := &XMLFormatter{}
 
-	formatter := fF.CreateFormatter(utils.XML)
+	formatter, _ := fF.CreateFormatter(utils.XML)
 	require.Equal(t, XMLFormatter, formatter)
 }
 
 func TestCreateFormatter_GINFormatter(t *testing.T) {
 	fF := NewFormatterFactory()
 
-	formatter := fF.CreateFormatter(utils.GIN)
+	formatter, _ := fF.CreateFormatter(utils.GIN)
 	require.Nil(t, formatter)
 }

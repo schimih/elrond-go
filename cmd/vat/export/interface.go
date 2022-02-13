@@ -1,4 +1,4 @@
-package manager
+package export
 
 type Formatter interface {
 	Output(rankedReport RankedReport) error

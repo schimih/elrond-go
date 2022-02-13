@@ -1,4 +1,4 @@
-package manager
+package export
 
 import (
 	"fmt"
@@ -56,10 +56,11 @@ func NewAnalysisManager(fF *FormatterFactory) (*AnalysisManager, error) {
 //
 // - organize results ... etc. etc.
 func (aM *AnalysisManager) CompleteRound(evaluatedTargets []evaluation.EvaluatedTarget) {
+	aM.RankedReport.populateReport(evaluatedTargets)
+	aM.RankedReport.NodesAnalyzed = len(evaluatedTargets)
+	aM.RankedReport.sortReport()
 
-	aM.RankedReport.SortAndPopulate(evaluatedTargets)
-
-	formatter := aM.FormatterFactory.CreateFormatter(aM.FormatType)
+	formatter, _ := aM.FormatterFactory.CreateFormatter(aM.FormatType)
 	err := formatter.Output(aM.RankedReport)
 	if err != nil {
 		return

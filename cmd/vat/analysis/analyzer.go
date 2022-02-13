@@ -11,16 +11,18 @@ import (
 )
 
 type Analyzer struct {
-	DiscoveredTargets []DiscoveredTarget
+	mut               sync.Mutex
+	discoveredTargets []DiscoveredTarget
 	discoverer        Discoverer
 	scannerFactory    ScannerFactory
 	parserFactory     ParserFactory
-	AnalysisType      utils.AnalysisType
-	ManagerCommand    int
+	analysisType      utils.AnalysisType
+	managerCommand    int
 }
 
 var log = logger.GetOrCreate("vat")
 
+// NewAnalyzer creates a new analyzer used for discovery and parsing activities
 func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory) (*Analyzer, error) {
 	if check.IfNil(discoverer) {
 		return nil, fmt.Errorf("Discoverer needed")
@@ -36,30 +38,35 @@ func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory) (*A
 
 	a := &Analyzer{}
 	a.discoverer = discoverer
-	a.ManagerCommand = NoCommand
-	a.DiscoveredTargets = make([]DiscoveredTarget, 0)
+	a.managerCommand = NoCommand
+	a.discoveredTargets = make([]DiscoveredTarget, 0)
 	a.scannerFactory = sf
 	a.parserFactory = pf
 
 	return a, nil
 }
 
-func (a *Analyzer) DiscoverTargets() {
-	a.DiscoveredTargets = a.discoverer.DiscoverNewTargets(a.DiscoveredTargets)
-}
+// StartJob discovers new targets and start the analysis job
+func (a *Analyzer) StartJob(analysisType utils.AnalysisType) (scanResults []scan.ScannedTarget) {
+	a.mut.Lock()
+	defer a.mut.Unlock()
 
-func (a *Analyzer) AnalyzeNewlyDiscoveredTargets(analysisType utils.AnalysisType) (scanResults []scan.ScannedTarget) {
+	a.discoverTargets()
 	// get command from manager
-	a.AnalysisType = analysisType
+	a.analysisType = analysisType
 	nmapScanResults := a.deployAnalysisWorkers()
 	p := a.parserFactory.CreateParser(nmapScanResults, analysisType)
 	return p.Parse()
 }
 
+func (a *Analyzer) discoverTargets() {
+	a.discoveredTargets = a.discoverer.DiscoverNewTargets(a.discoveredTargets)
+}
+
 func (a *Analyzer) deployAnalysisWorkers() (work [][]byte) {
 	scanResults := make([][]byte, 0)
 	var wg sync.WaitGroup
-	for _, h := range a.DiscoveredTargets {
+	for _, h := range a.discoveredTargets {
 		if (h.ActualStatus() == New) || (h.ActualStatus() == Expired) {
 			wg.Add(1)
 			temp := h
@@ -73,8 +80,9 @@ func (a *Analyzer) deployAnalysisWorkers() (work [][]byte) {
 	return scanResults
 }
 
+// this is concurrent safe because a target is not accessed by two concurrent workers
 func (a *Analyzer) worker(h *DiscoveredTarget) (rawScanResults []byte) {
-	s := a.scannerFactory.CreateScanner(h.Address, utils.AnalysisType(a.AnalysisType))
+	s := a.scannerFactory.CreateScanner(h.Address, utils.AnalysisType(a.analysisType))
 
 	log.Info("Starting scan for:", "address", h.Address)
 	// Run the scan
@@ -83,18 +91,14 @@ func (a *Analyzer) worker(h *DiscoveredTarget) (rawScanResults []byte) {
 		log.Error("Scan failed because %e", err)
 	}
 
-	log.Info("Scanning done for target:", "address", a.changeTargetStatus(h.Address, utils.SCANNED))
+	a.changeTargetStatus(h, utils.SCANNED)
+
+	log.Info("Scanning done for target:", "address", h.Address)
 	return rawResult
 }
 
-func (a *Analyzer) changeTargetStatus(address string, status utils.TargetStatus) string {
-	for idx, _ := range a.DiscoveredTargets {
-		if address == a.DiscoveredTargets[idx].Address {
-			a.DiscoveredTargets[idx].Status = status
-			break
-		}
-	}
-	return address
+func (a *Analyzer) changeTargetStatus(h *DiscoveredTarget, status utils.TargetStatus) {
+	h.Status = status
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

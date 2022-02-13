@@ -9,3 +9,8 @@ type Parser interface {
 	Parse() (parsingResults []ScannedTarget)
 	IsInterfaceNil() bool
 }
+
+type Dialer interface {
+	Dial() error
+	IsInterfaceNil() bool
+}

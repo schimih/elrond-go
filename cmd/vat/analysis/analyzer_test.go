@@ -61,7 +61,6 @@ func TestNewAnalyzer_DiscovererNilCheck(t *testing.T) {
 
 func TestNewAnalyzer_ScannerFactoryNilCheck(t *testing.T) {
 	fd := &FakeDiscoverer{}
-	//sff := &FakeScannerFactory{}
 	fpf := &FakeParserFactory{}
 	na, err := NewAnalyzer(fd, nil, fpf)
 	assert.True(t, check.IfNil(na))
@@ -72,7 +71,6 @@ func TestNewAnalyzer_ScannerFactoryNilCheck(t *testing.T) {
 func TestNewAnalyzer_ParserFactoryNilCheck(t *testing.T) {
 	fd := &FakeDiscoverer{}
 	sff := &FakeScannerFactory{}
-	//fpf := &FakeParserFactory{}
 	na, err := NewAnalyzer(fd, sff, nil)
 	assert.True(t, check.IfNil(na))
 	expectedErrorString := "ParserFactory needed"
@@ -87,9 +85,9 @@ func TestAnalyzer_DiscoverNewPeers(t *testing.T) {
 	discovererStub.DiscoverNewTargetsCalled = func(existingTargets []DiscoveredTarget) (targets []DiscoveredTarget) {
 		return make([]DiscoveredTarget, 2)
 	}
-	na.DiscoverTargets()
+	na.discoverTargets()
 
-	require.Equal(t, 2, len(na.DiscoveredTargets))
+	require.Equal(t, 2, len(na.discoveredTargets))
 }
 
 func TestAnalyzeNewlyDiscoveredTargets(t *testing.T) {
@@ -98,7 +96,7 @@ func TestAnalyzeNewlyDiscoveredTargets(t *testing.T) {
 	fpf := &FakeParserFactory{}
 	na, _ := NewAnalyzer(discovererStub, sff, fpf)
 	analysisType := utils.TCP_WEB
-	na.AnalyzeNewlyDiscoveredTargets(analysisType)
+	na.StartJob(analysisType)
 }
 
 func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsNew(t *testing.T) {
@@ -114,8 +112,8 @@ func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsNew(t *testing.T) {
 		ConnectionPort: "Test_Port",
 		Status:         utils.NEW,
 	}
-	na.DiscoveredTargets = append(na.DiscoveredTargets, DiscoveredTarget)
-	na.AnalyzeNewlyDiscoveredTargets(analysisType)
+	na.discoveredTargets = append(na.discoveredTargets, DiscoveredTarget)
+	na.StartJob(analysisType)
 }
 
 func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsExpired(t *testing.T) {
@@ -131,8 +129,8 @@ func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsExpired(t *testing.T) {
 		ConnectionPort: "Test_Port",
 		Status:         utils.EXPIRED,
 	}
-	na.DiscoveredTargets = append(na.DiscoveredTargets, DiscoveredTarget)
-	na.AnalyzeNewlyDiscoveredTargets(analysisType)
+	na.discoveredTargets = append(na.discoveredTargets, DiscoveredTarget)
+	na.StartJob(analysisType)
 }
 
 func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsNorNewOrExpired(t *testing.T) {
@@ -148,8 +146,8 @@ func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsNorNewOrExpired(t *testing.
 		ConnectionPort: "Test_Port",
 		Status:         utils.SCANNED,
 	}
-	na.DiscoveredTargets = append(na.DiscoveredTargets, DiscoveredTarget)
-	na.AnalyzeNewlyDiscoveredTargets(analysisType)
+	na.discoveredTargets = append(na.discoveredTargets, DiscoveredTarget)
+	na.StartJob(analysisType)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
