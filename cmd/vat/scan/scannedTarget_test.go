@@ -3,7 +3,7 @@ package scan
 import (
 	"testing"
 
-	"github.com/elrond-go/cmd/vat/utils"
+	core "github.com/elrond-go/cmd/vat/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,11 +15,11 @@ func TestNewScannedTarget(t *testing.T) {
 		Standard:     "",
 		Ports:        make([]Port, 0),
 		Architecture: "",
-		Status:       utils.NEW,
-		AnalysisType: utils.TCP_SSH,
+		Status:       core.NEW,
+		AnalysisType: core.TCP_SSH,
 	}
 
-	newScannedTarget := NewScannedTarget(0, "testAddress", make([]Port, 0), utils.NEW, utils.TCP_SSH)
+	newScannedTarget := NewScannedTarget(0, "testAddress", make([]Port, 0), core.NEW, core.TCP_SSH)
 
 	require.Equal(t, expected, newScannedTarget)
 }

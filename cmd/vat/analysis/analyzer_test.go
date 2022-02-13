@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/scan"
-	"github.com/elrond-go/cmd/vat/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,15 +25,15 @@ func (fd *FakeDiscoverer) DiscoverNewTargets(existingTargets []DiscoveredTarget)
 	return
 }
 
-func (sff *FakeScannerFactory) CreateScanner(target string, analysisType utils.AnalysisType) (Scanner scan.Scanner) {
+func (sff *FakeScannerFactory) CreateScanner(target string, analysisType core.AnalysisType) (Scanner scan.Scanner) {
 	return &scan.NmapScanner{
 		Name:   "TCP-SSH",
 		Target: target,
-		Status: utils.NOT_STARTED,
+		Status: core.NOT_STARTED,
 		Cmd:    "Test_Cmd_Should_Fail"}
 }
 
-func (fpf *FakeParserFactory) CreateParser(input [][]byte, grammar utils.AnalysisType) scan.Parser {
+func (fpf *FakeParserFactory) CreateParser(input [][]byte, grammar core.AnalysisType) scan.Parser {
 	return &scan.ParserData{
 		Input:           input,
 		AnalyzedTargets: make([]scan.ScannedTarget, 0),
@@ -44,16 +44,14 @@ func (fpf *FakeParserFactory) CreateParser(input [][]byte, grammar utils.Analysi
 func TestNewAnalyzer(t *testing.T) {
 	fd := &FakeDiscoverer{}
 	sff := &FakeScannerFactory{}
-	fpf := &FakeParserFactory{}
-	na, err := NewAnalyzer(fd, sff, fpf)
+	na, err := NewAnalyzer(fd, sff)
 	assert.False(t, check.IfNil(na))
 	assert.Nil(t, err)
 }
 
 func TestNewAnalyzer_DiscovererNilCheck(t *testing.T) {
 	sff := &FakeScannerFactory{}
-	fpf := &FakeParserFactory{}
-	na, err := NewAnalyzer(nil, sff, fpf)
+	na, err := NewAnalyzer(nil, sff)
 	assert.True(t, check.IfNil(na))
 	expectedErrorString := "Discoverer needed"
 	assert.EqualErrorf(t, err, expectedErrorString, "wrong message")
@@ -61,8 +59,7 @@ func TestNewAnalyzer_DiscovererNilCheck(t *testing.T) {
 
 func TestNewAnalyzer_ScannerFactoryNilCheck(t *testing.T) {
 	fd := &FakeDiscoverer{}
-	fpf := &FakeParserFactory{}
-	na, err := NewAnalyzer(fd, nil, fpf)
+	na, err := NewAnalyzer(fd, nil)
 	assert.True(t, check.IfNil(na))
 	expectedErrorString := "ScannerFactory needed"
 	assert.EqualErrorf(t, err, expectedErrorString, "wrong message")
@@ -71,7 +68,7 @@ func TestNewAnalyzer_ScannerFactoryNilCheck(t *testing.T) {
 func TestNewAnalyzer_ParserFactoryNilCheck(t *testing.T) {
 	fd := &FakeDiscoverer{}
 	sff := &FakeScannerFactory{}
-	na, err := NewAnalyzer(fd, sff, nil)
+	na, err := NewAnalyzer(fd, sff)
 	assert.True(t, check.IfNil(na))
 	expectedErrorString := "ParserFactory needed"
 	assert.EqualErrorf(t, err, expectedErrorString, "wrong message")
@@ -80,8 +77,7 @@ func TestNewAnalyzer_ParserFactoryNilCheck(t *testing.T) {
 func TestAnalyzer_DiscoverNewPeers(t *testing.T) {
 	discovererStub := NewDiscovererStub()
 	sff := &FakeScannerFactory{}
-	fpf := &FakeParserFactory{}
-	na, _ := NewAnalyzer(discovererStub, sff, fpf)
+	na, _ := NewAnalyzer(discovererStub, sff)
 	discovererStub.DiscoverNewTargetsCalled = func(existingTargets []DiscoveredTarget) (targets []DiscoveredTarget) {
 		return make([]DiscoveredTarget, 2)
 	}
@@ -93,24 +89,22 @@ func TestAnalyzer_DiscoverNewPeers(t *testing.T) {
 func TestAnalyzeNewlyDiscoveredTargets(t *testing.T) {
 	discovererStub := NewDiscovererStub()
 	sff := &FakeScannerFactory{}
-	fpf := &FakeParserFactory{}
-	na, _ := NewAnalyzer(discovererStub, sff, fpf)
-	analysisType := utils.TCP_WEB
+	na, _ := NewAnalyzer(discovererStub, sff)
+	analysisType := core.TCP_WEB
 	na.StartJob(analysisType)
 }
 
 func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsNew(t *testing.T) {
 	discovererStub := NewDiscovererStub()
 	sff := &FakeScannerFactory{}
-	fpf := &FakeParserFactory{}
-	na, _ := NewAnalyzer(discovererStub, sff, fpf)
-	analysisType := utils.TCP_WEB
+	na, _ := NewAnalyzer(discovererStub, sff)
+	analysisType := core.TCP_WEB
 	DiscoveredTarget := DiscoveredTarget{
 		ID:             0,
 		Protocol:       "Test_Protocol",
 		Address:        "Test_Address",
 		ConnectionPort: "Test_Port",
-		Status:         utils.NEW,
+		Status:         core.NEW,
 	}
 	na.discoveredTargets = append(na.discoveredTargets, DiscoveredTarget)
 	na.StartJob(analysisType)
@@ -119,15 +113,14 @@ func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsNew(t *testing.T) {
 func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsExpired(t *testing.T) {
 	discovererStub := NewDiscovererStub()
 	sff := &FakeScannerFactory{}
-	fpf := &FakeParserFactory{}
-	na, _ := NewAnalyzer(discovererStub, sff, fpf)
-	analysisType := utils.TCP_WEB
+	na, _ := NewAnalyzer(discovererStub, sff)
+	analysisType := core.TCP_WEB
 	DiscoveredTarget := DiscoveredTarget{
 		ID:             0,
 		Protocol:       "Test_Protocol",
 		Address:        "Test_Address",
 		ConnectionPort: "Test_Port",
-		Status:         utils.EXPIRED,
+		Status:         core.EXPIRED,
 	}
 	na.discoveredTargets = append(na.discoveredTargets, DiscoveredTarget)
 	na.StartJob(analysisType)
@@ -136,15 +129,14 @@ func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsExpired(t *testing.T) {
 func TestAnalyzeNewlyDiscoveredTargets_ActualStatusIsNorNewOrExpired(t *testing.T) {
 	discovererStub := NewDiscovererStub()
 	sff := &FakeScannerFactory{}
-	fpf := &FakeParserFactory{}
-	na, _ := NewAnalyzer(discovererStub, sff, fpf)
-	analysisType := utils.TCP_WEB
+	na, _ := NewAnalyzer(discovererStub, sff)
+	analysisType := core.TCP_WEB
 	DiscoveredTarget := DiscoveredTarget{
 		ID:             0,
 		Protocol:       "Test_Protocol",
 		Address:        "Test_Address",
 		ConnectionPort: "Test_Port",
-		Status:         utils.SCANNED,
+		Status:         core.SCANNED,
 	}
 	na.discoveredTargets = append(na.discoveredTargets, DiscoveredTarget)
 	na.StartJob(analysisType)

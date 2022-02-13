@@ -1,7 +1,7 @@
 package scan
 
 import (
-	"github.com/elrond-go/cmd/vat/utils"
+	core "github.com/elrond-go/cmd/vat/core"
 )
 
 type ScannedTarget struct {
@@ -11,11 +11,11 @@ type ScannedTarget struct {
 	Standard     string
 	Ports        []Port
 	Architecture string
-	Status       utils.TargetStatus
-	AnalysisType utils.AnalysisType
+	Status       core.TargetStatus
+	AnalysisType core.AnalysisType
 }
 
-func NewScannedTarget(id uint, address string, ports []Port, peerStatus utils.TargetStatus, analysisType utils.AnalysisType) ScannedTarget {
+func NewScannedTarget(id uint, address string, ports []Port, peerStatus core.TargetStatus, analysisType core.AnalysisType) ScannedTarget {
 
 	return ScannedTarget{
 		ID:           id,

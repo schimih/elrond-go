@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/elrond-go/cmd/vat/utils"
+	core "github.com/elrond-go/cmd/vat/core"
 )
 
 var log = logger.GetOrCreate("vat")
@@ -14,15 +14,15 @@ type NmapScanner struct {
 	mutScanner sync.Mutex
 	Name       string
 	Target     string
-	Status     utils.ScannerStatus
+	Status     core.ScannerStatus
 	Cmd        string
 }
 
 func (s *NmapScanner) preScan() {
-	s.Status = utils.IN_PROGRESS
+	s.Status = core.IN_PROGRESS
 }
 func (s *NmapScanner) postScan() {
-	s.Status = utils.FINISHED
+	s.Status = core.FINISHED
 }
 
 // Run nmap scan

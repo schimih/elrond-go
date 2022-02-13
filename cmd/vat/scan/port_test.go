@@ -3,7 +3,7 @@ package scan
 import (
 	"testing"
 
-	"github.com/elrond-go/cmd/vat/utils"
+	core "github.com/elrond-go/cmd/vat/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,13 +12,13 @@ func TestNewPort(t *testing.T) {
 		ID:         0,
 		Number:     10000,
 		Protocol:   "testProtocol",
-		State:      utils.Closed,
+		State:      core.Closed,
 		Owner:      "testOwner",
-		Type:       utils.ElrondPort,
-		Importance: utils.JudgementNoRisk,
+		Type:       core.ElrondPort,
+		Importance: core.JudgementNoRisk,
 	}
 
-	newPort := NewPort(0, 10000, "testProtocol", utils.Closed, "testOwner", utils.ElrondPort)
+	newPort := NewPort(0, 10000, "testProtocol", core.Closed, "testOwner", core.ElrondPort)
 
 	require.Equal(t, expectedPort, newPort)
 }

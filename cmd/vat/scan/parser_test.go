@@ -3,7 +3,7 @@ package scan
 import (
 	"testing"
 
-	"github.com/elrond-go/cmd/vat/utils"
+	core "github.com/elrond-go/cmd/vat/core"
 	gonmap "github.com/lair-framework/go-nmap"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +16,7 @@ func TestParser(t *testing.T) {
 	parserData := &ParserData{
 		Input:             input,
 		AnalyzedTargets:   make([]ScannedTarget, 0),
-		Grammar:           utils.TCP_ELROND,
+		Grammar:           core.TCP_ELROND,
 		SlicedParsedInput: make([]*gonmap.NmapRun, 0),
 	}
 

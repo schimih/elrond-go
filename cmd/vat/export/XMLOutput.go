@@ -4,8 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-
-	"github.com/elrond-go/cmd/vat/utils"
 )
 
 type XMLFormatter struct {
@@ -18,7 +16,7 @@ func (xF *XMLFormatter) Output(rankedReport RankedReport) error {
 	if err != nil {
 		return fmt.Errorf("could not write File")
 	}
-	path := utils.XMLFilePath
+	path := XMLFilePath
 	log.Info("Evaluated Targets list added to ", "path", path)
 	log.Info("Evaluated", "Nodes", rankedReport.NodesAnalyzed)
 

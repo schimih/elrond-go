@@ -1,4 +1,4 @@
-package utils
+package core
 
 // AnalysisType represents the type of Analysis to be ran
 type AnalysisType int
@@ -103,15 +103,6 @@ const (
 	FINISHED    ScannerStatus = 5
 )
 
-type Risk int
-
-const (
-	HighRisk   Risk = 25
-	MediumRisk Risk = 10
-	SmallRisk  Risk = 5
-	NoRisk     Risk = 0
-)
-
 type Judgement string
 
 const (
@@ -133,16 +124,3 @@ const (
 	LOW   SecureLevel = 2
 	ALERT SecureLevel = 3
 )
-
-type OutputType int
-
-const (
-	Table    OutputType = 0
-	JSON     OutputType = 1
-	XML      OutputType = 2
-	GIN      OutputType = 3
-	JustScan OutputType = 4
-)
-
-const JsonFilePath = "./cmd/vat/AnalysisResult.json"
-const XMLFilePath = "./cmd/vat/AnalysisResult.xml"

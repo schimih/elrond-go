@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	"github.com/elrond-go/cmd/vat/evaluation"
-	"github.com/elrond-go/cmd/vat/utils"
+	core "github.com/elrond-go/cmd/vat/utils"
 )
 
 type RankedReport struct {
@@ -28,9 +28,9 @@ func NewRankedReport() RankedReport {
 func (rR *RankedReport) populateReport(evaluatedTargets []evaluation.EvaluatedTarget) {
 	for _, evaluatedTarget := range evaluatedTargets {
 		switch evaluatedTarget.GetSecurityLevel() {
-		case utils.HIGH:
+		case core.HIGH:
 			rR.LowRiskNodes = append(rR.LowRiskNodes, evaluatedTarget)
-		case utils.MID:
+		case core.MID:
 			rR.MediumRiskNodes = append(rR.MediumRiskNodes, evaluatedTarget)
 		default:
 			rR.HighRiskNodes = append(rR.HighRiskNodes, evaluatedTarget)

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/elrond-go/cmd/vat/analysis"
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/scan"
-	"github.com/elrond-go/cmd/vat/utils"
 )
 
 type EvaluatedTarget struct {
@@ -16,26 +16,34 @@ type EvaluatedTarget struct {
 	scannerFactory analysis.ScannerFactory
 }
 
+func CreateEvaluator(address string, ports []scan.Port, evaluationType core.EvaluationType, sF analysis.ScannerFactory) Evaluator {
+	return &EvaluatedTarget{
+		identity:       newIdentity(address, ports),
+		evaluation:     newEvaluationResult(evaluationType),
+		scannerFactory: sF,
+	}
+}
+
 func (eT *EvaluatedTarget) Evaluate() EvaluatedTarget {
 	eT.evaluation.score -= eT.calculateDeductionPoints()
 	eT.evaluation.securityLevel = eT.calculateSecurityLevel()
-	eT.identity.status = string(utils.EVALUATED)
+	eT.identity.status = string(core.EVALUATED)
 
 	return *eT
 }
 
 func (eT *EvaluatedTarget) calculateDeductionPoints() (deductionPoints int) {
-	judgement := utils.JudgementFromPort
+	judgement := core.JudgementFromPort
 	deductionPoints = 0
 
 	for _, port := range eT.identity.ports {
-		if port.State == utils.Open {
+		if port.State == core.Open {
 			if eT.requestedSpecialCheck(port.Number) {
 				judgement = eT.runSpecialCheck()
 			} else {
-				judgement = utils.JudgementFromPort
+				judgement = core.JudgementFromPort
 			}
-			deductionPoints += eT.runJudgement(port.Importance, judgement)
+			deductionPoints += eT.runJudgement(core.Importance, judgement)
 		}
 	}
 
@@ -43,52 +51,52 @@ func (eT *EvaluatedTarget) calculateDeductionPoints() (deductionPoints int) {
 }
 
 func (eT *EvaluatedTarget) requestedSpecialCheck(portNumber int) bool {
-	return ((portNumber == 22) && (eT.evaluation.evaluationType == utils.Polite_PortAndSshEvaluation)) ||
-		((portNumber == 22) && (eT.evaluation.evaluationType == utils.Brute_PortAndSshEvaluation))
+	return ((portNumber == 22) && (eT.evaluation.evaluationType == core.Polite_PortAndSshEvaluation)) ||
+		((portNumber == 22) && (eT.evaluation.evaluationType == core.Brute_PortAndSshEvaluation))
 }
 
-func (eT *EvaluatedTarget) runSpecialCheck() (judgement utils.Judgement) {
-	if eT.evaluation.evaluationType == utils.Polite_PortAndSshEvaluation {
+func (eT *EvaluatedTarget) runSpecialCheck() (judgement core.Judgement) {
+	if eT.evaluation.evaluationType == core.Polite_PortAndSshEvaluation {
 		return eT.runPoliteSshCheck()
 	} else {
 		return eT.runBruteForceSshCheck()
 	}
 }
 
-func (eT *EvaluatedTarget) runPoliteSshCheck() (judgement utils.Judgement) {
-	s := eT.scannerFactory.CreateScanner(eT.identity.address, utils.TCP_POLITE_REQ1)
+func (eT *EvaluatedTarget) runPoliteSshCheck() (judgement core.Judgement) {
+	s := eT.scannerFactory.CreateScanner(eT.identity.address, core.TCP_POLITE_REQ1)
 
 	_, err := s.Scan()
 	if err != nil {
 		return interpretErrorGravity(err)
 	}
 
-	return utils.JudgementDummyPermited
+	return core.JudgementDummyPermited
 }
 
-func interpretErrorGravity(err error) (judgement utils.Judgement) {
+func interpretErrorGravity(err error) (judgement core.Judgement) {
 	errSlice := strings.Split(err.Error(), " ")
 
 	for i := range errSlice {
 		if errSlice[i] == "[none]," {
-			return utils.JudgementSshUserPermited
+			return core.JudgementSshUserPermited
 		}
 		if errSlice[i] == "[none" {
 			// next word in string
 			if errSlice[i+1] == "password]," {
 
-				return utils.JudgementSshPwdPermited
+				return core.JudgementSshPwdPermited
 			}
 		}
 	}
 
-	return utils.JudgementFromPort
+	return core.JudgementFromPort
 }
 
 // BruteForce was never called => the result interpretation has not been done.
 // Has to be checked with the team if permitted.
-func (eT *EvaluatedTarget) runBruteForceSshCheck() (judgement utils.Judgement) {
-	s := eT.scannerFactory.CreateScanner(eT.identity.address, utils.TCP_BRUTE_REQ1)
+func (eT *EvaluatedTarget) runBruteForceSshCheck() (judgement core.Judgement) {
+	s := eT.scannerFactory.CreateScanner(eT.identity.address, core.TCP_BRUTE_REQ1)
 
 	_, err := s.Scan()
 	if err != nil {
@@ -99,8 +107,8 @@ func (eT *EvaluatedTarget) runBruteForceSshCheck() (judgement utils.Judgement) {
 	return
 }
 
-func (eT *EvaluatedTarget) runJudgement(portJudgement utils.Judgement, checkJudgement utils.Judgement) (synopsis int) {
-	if checkJudgement != utils.JudgementFromPort {
+func (eT *EvaluatedTarget) runJudgement(portJudgement core.Judgement, checkJudgement core.Judgement) (synopsis int) {
+	if checkJudgement != core.JudgementFromPort {
 		eT.evaluation.judgements = append(eT.evaluation.judgements, fmt.Sprintf(string(checkJudgement)))
 	}
 
@@ -116,18 +124,18 @@ func extractNumber(judgement string) int {
 	return i
 }
 
-func (eT *EvaluatedTarget) calculateSecurityLevel() utils.SecureLevel {
+func (eT *EvaluatedTarget) calculateSecurityLevel() core.SecureLevel {
 	if eT.evaluation.score >= 80 {
-		return utils.HIGH
+		return core.HIGH
 	}
 	if (eT.evaluation.score >= 60) && (eT.evaluation.score < 80) {
-		return utils.MID
+		return core.MID
 	}
 	if (eT.evaluation.score >= 40) && (eT.evaluation.score < 60) {
-		return utils.LOW
+		return core.LOW
 	}
 
-	return utils.ALERT
+	return core.ALERT
 }
 
 func (eT *EvaluatedTarget) GetAddress() (address string) {
@@ -146,7 +154,7 @@ func (eT *EvaluatedTarget) GetJudgements() (judgements []string) {
 	return eT.evaluation.judgements
 }
 
-func (eT *EvaluatedTarget) GetSecurityLevel() (securityLevel utils.SecureLevel) {
+func (eT *EvaluatedTarget) GetSecurityLevel() (securityLevel core.SecureLevel) {
 	return eT.evaluation.securityLevel
 }
 
@@ -154,7 +162,7 @@ func (eT *EvaluatedTarget) GetStatus() (status string) {
 	return eT.identity.status
 }
 
-func (eT *EvaluatedTarget) GetEvaluationType() (evaluationType utils.EvaluationType) {
+func (eT *EvaluatedTarget) GetEvaluationType() (evaluationType core.EvaluationType) {
 	return eT.evaluation.evaluationType
 }
 

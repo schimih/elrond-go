@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-
-	"github.com/elrond-go/cmd/vat/utils"
 )
 
 type JsonFormatter struct {
@@ -18,7 +16,7 @@ func (jF *JsonFormatter) Output(rankedReport RankedReport) error {
 		return fmt.Errorf("could not write File")
 	}
 
-	path := utils.JsonFilePath
+	path := JsonFilePath
 	log.Info("Evaluated Targets list added to ", "path", path)
 	log.Info("Evaluated", "Nodes", rankedReport.NodesAnalyzed)
 

@@ -1,12 +1,11 @@
 package export
 
 import (
-	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/evaluation"
-	"github.com/elrond-go/cmd/vat/utils"
 )
 
 type AnalysisManager struct {
@@ -15,18 +14,14 @@ type AnalysisManager struct {
 	TotalRunTime        time.Duration
 	AnalysisLoops       int
 	RankedReport        RankedReport
-	FormatterFactory    *FormatterFactory
-	formatterType       utils.OutputType
-	AnalysisType        utils.AnalysisType
-	EvaluationType      utils.EvaluationType
-	FormatType          utils.OutputType
+	formatterType       OutputType
+	AnalysisType        core.AnalysisType
+	EvaluationType      core.EvaluationType
+	FormatType          OutputType
 	ExpireNextRun       bool
 }
 
-func NewAnalysisManager(fF *FormatterFactory) (*AnalysisManager, error) {
-	if check.IfNil(fF) {
-		return nil, fmt.Errorf("FormatterFactory needed")
-	}
+func NewAnalysisManager() (*AnalysisManager, error) {
 
 	rankedReport := NewRankedReport()
 	return &AnalysisManager{
@@ -35,10 +30,9 @@ func NewAnalysisManager(fF *FormatterFactory) (*AnalysisManager, error) {
 		TotalRunTime:        time.Duration(0),
 		AnalysisLoops:       0,
 		RankedReport:        rankedReport,
-		FormatterFactory:    fF,
-		AnalysisType:        utils.TCP_REQ1,                    // by default go with TCP_WEB -> this has to be controlled by manager
-		EvaluationType:      utils.Polite_PortAndSshEvaluation, // by default go with PortStatusEvaluation
-		FormatType:          utils.Table,
+		AnalysisType:        core.TCP_REQ1,                    // by default go with TCP_WEB -> this has to be controlled by manager
+		EvaluationType:      core.Polite_PortAndSshEvaluation, // by default go with PortStatusEvaluation
+		FormatType:          Table,
 		ExpireNextRun:       false,
 	}, nil
 }
@@ -60,7 +54,7 @@ func (aM *AnalysisManager) CompleteRound(evaluatedTargets []evaluation.Evaluated
 	aM.RankedReport.NodesAnalyzed = len(evaluatedTargets)
 	aM.RankedReport.sortReport()
 
-	formatter, _ := aM.FormatterFactory.CreateFormatter(aM.FormatType)
+	formatter, _ := createFormatter(aM.FormatType)
 	err := formatter.Output(aM.RankedReport)
 	if err != nil {
 		return
@@ -68,6 +62,22 @@ func (aM *AnalysisManager) CompleteRound(evaluatedTargets []evaluation.Evaluated
 
 	aM.AnalysisLoops++
 	aM.RankedReport = RankedReport{}
+}
+
+func createFormatter(formatType OutputType) (formatter Formatter, err error) {
+	switch formatType {
+	case Table:
+		return &TableFormatter{
+			header:    make([]string, 0),
+			dataLines: make([]*display.LineData, 0),
+		}, nil
+	case JSON:
+		return &JsonFormatter{}, nil
+	case XML:
+		return &XMLFormatter{}, nil
+	default:
+		return nil, core.ErrNoFormatterType
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -8,9 +8,8 @@ import (
 )
 
 func TestNewAnalysisManager(t *testing.T) {
-	fakeFF := &FormatterFactory{}
 
-	aM, err := NewAnalysisManager(fakeFF)
+	aM, err := NewAnalysisManager()
 
 	assert.False(t, check.IfNil(aM))
 	assert.Nil(t, err)
@@ -19,7 +18,7 @@ func TestNewAnalysisManager(t *testing.T) {
 func TestNewAnalysisManager_FormatterNilCheck(t *testing.T) {
 	//fakeFF := &FormatterFactory{}
 
-	aM, err := NewAnalysisManager(nil)
+	aM, err := NewAnalysisManager()
 
 	assert.True(t, check.IfNil(aM))
 	expectedErrorString := "FormatterFactory needed"

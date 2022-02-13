@@ -1,8 +1,8 @@
 package evaluation
 
 import (
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/scan"
-	"github.com/elrond-go/cmd/vat/utils"
 )
 
 type identity struct {
@@ -15,6 +15,6 @@ func newIdentity(address string, ports []scan.Port) (id identity) {
 	return identity{
 		address: address,
 		ports:   ports,
-		status:  string(utils.NEW),
+		status:  string(core.NEW),
 	}
 }

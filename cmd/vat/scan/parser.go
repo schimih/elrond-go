@@ -3,14 +3,14 @@ package scan
 import (
 	"strings"
 
-	"github.com/elrond-go/cmd/vat/utils"
+	core "github.com/elrond-go/cmd/vat/core"
 	gonmap "github.com/lair-framework/go-nmap"
 )
 
 type ParserData struct {
 	Input             [][]byte
 	AnalyzedTargets   []ScannedTarget
-	Grammar           utils.AnalysisType
+	Grammar           core.AnalysisType
 	SlicedParsedInput []*gonmap.NmapRun
 }
 
@@ -41,8 +41,17 @@ func (pD *ParserData) translateInput() {
 func (pD *ParserData) translateTarget(id int, host gonmap.Host) {
 	pS := createPortSlice(host)
 	translatedPortSlice := pS.translatePortSlice()
-	analyzedTarget := NewScannedTarget(uint(id), host.Addresses[0].Addr, translatedPortSlice, utils.SCANNED, pD.Grammar)
+	analyzedTarget := NewScannedTarget(uint(id), host.Addresses[0].Addr, translatedPortSlice, core.SCANNED, pD.Grammar)
 	pD.AnalyzedTargets = append(pD.AnalyzedTargets, analyzedTarget)
+}
+
+func CreateParser(input [][]byte, grammar core.AnalysisType) Parser {
+	return &ParserData{
+		Input:             input,
+		AnalyzedTargets:   make([]ScannedTarget, 0),
+		Grammar:           grammar,
+		SlicedParsedInput: make([]*gonmap.NmapRun, 0),
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

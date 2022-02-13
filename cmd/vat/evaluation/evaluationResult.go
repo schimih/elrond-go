@@ -1,18 +1,21 @@
 package evaluation
 
-import "github.com/elrond-go/cmd/vat/utils"
+import "github.com/elrond-go/cmd/vat/core"
+
+// initial rating
+const initialRating = 100
 
 type evaluationResult struct {
 	score          int
-	securityLevel  utils.SecureLevel
+	securityLevel  core.SecureLevel
 	judgements     []string
-	evaluationType utils.EvaluationType
+	evaluationType core.EvaluationType
 }
 
-func newEvaluationResult(evaluationType utils.EvaluationType) (evaluation evaluationResult) {
+func newEvaluationResult(evaluationType core.EvaluationType) (evaluation evaluationResult) {
 	return evaluationResult{
 		score:          initialRating,
-		securityLevel:  utils.HIGH,
+		securityLevel:  core.HIGH,
 		judgements:     make([]string, 0),
 		evaluationType: evaluationType,
 	}

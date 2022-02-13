@@ -6,8 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/scan"
-	"github.com/elrond-go/cmd/vat/utils"
 )
 
 type Analyzer struct {
@@ -15,15 +15,14 @@ type Analyzer struct {
 	discoveredTargets []DiscoveredTarget
 	discoverer        Discoverer
 	scannerFactory    ScannerFactory
-	parserFactory     ParserFactory
-	analysisType      utils.AnalysisType
+	analysisType      core.AnalysisType
 	managerCommand    int
 }
 
 var log = logger.GetOrCreate("vat")
 
 // NewAnalyzer creates a new analyzer used for discovery and parsing activities
-func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory) (*Analyzer, error) {
+func NewAnalyzer(discoverer Discoverer, sf ScannerFactory) (*Analyzer, error) {
 	if check.IfNil(discoverer) {
 		return nil, fmt.Errorf("Discoverer needed")
 	}
@@ -32,22 +31,17 @@ func NewAnalyzer(discoverer Discoverer, sf ScannerFactory, pf ParserFactory) (*A
 		return nil, fmt.Errorf("ScannerFactory needed")
 	}
 
-	if check.IfNil(pf) {
-		return nil, fmt.Errorf("ParserFactory needed")
-	}
-
 	a := &Analyzer{}
 	a.discoverer = discoverer
 	a.managerCommand = NoCommand
 	a.discoveredTargets = make([]DiscoveredTarget, 0)
 	a.scannerFactory = sf
-	a.parserFactory = pf
 
 	return a, nil
 }
 
 // StartJob discovers new targets and start the analysis job
-func (a *Analyzer) StartJob(analysisType utils.AnalysisType) (scanResults []scan.ScannedTarget) {
+func (a *Analyzer) StartJob(analysisType core.AnalysisType) (scanResults []scan.ScannedTarget) {
 	a.mut.Lock()
 	defer a.mut.Unlock()
 
@@ -55,7 +49,7 @@ func (a *Analyzer) StartJob(analysisType utils.AnalysisType) (scanResults []scan
 	// get command from manager
 	a.analysisType = analysisType
 	nmapScanResults := a.deployAnalysisWorkers()
-	p := a.parserFactory.CreateParser(nmapScanResults, analysisType)
+	p := scan.CreateParser(nmapScanResults, analysisType)
 	return p.Parse()
 }
 
@@ -82,7 +76,7 @@ func (a *Analyzer) deployAnalysisWorkers() (work [][]byte) {
 
 // this is concurrent safe because a target is not accessed by two concurrent workers
 func (a *Analyzer) worker(h *DiscoveredTarget) (rawScanResults []byte) {
-	s := a.scannerFactory.CreateScanner(h.Address, utils.AnalysisType(a.analysisType))
+	s := a.scannerFactory.CreateScanner(h.Address, core.AnalysisType(a.analysisType))
 
 	log.Info("Starting scan for:", "address", h.Address)
 	// Run the scan
@@ -91,13 +85,13 @@ func (a *Analyzer) worker(h *DiscoveredTarget) (rawScanResults []byte) {
 		log.Error("Scan failed because %e", err)
 	}
 
-	a.changeTargetStatus(h, utils.SCANNED)
+	a.changeTargetStatus(h, core.SCANNED)
 
 	log.Info("Scanning done for target:", "address", h.Address)
 	return rawResult
 }
 
-func (a *Analyzer) changeTargetStatus(h *DiscoveredTarget, status utils.TargetStatus) {
+func (a *Analyzer) changeTargetStatus(h *DiscoveredTarget, status core.TargetStatus) {
 	h.Status = status
 }
 

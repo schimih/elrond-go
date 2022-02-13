@@ -1,7 +1,7 @@
 package analysis
 
 import (
-	"github.com/elrond-go/cmd/vat/utils"
+	"github.com/elrond-go/cmd/vat/core"
 )
 
 // TargetStatus represents a target's state.
@@ -29,10 +29,10 @@ type DiscoveredTarget struct {
 	Protocol       string
 	Address        string
 	ConnectionPort string
-	Status         utils.TargetStatus
+	Status         core.TargetStatus
 }
 
-func MakeTarget(id uint, protocol string, address string, connectionPort string, status utils.TargetStatus) DiscoveredTarget {
+func MakeTarget(id uint, protocol string, address string, connectionPort string, status core.TargetStatus) DiscoveredTarget {
 	return DiscoveredTarget{
 		ID:             id,
 		Protocol:       protocol,
