@@ -3,9 +3,9 @@ package export
 import (
 	"testing"
 
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/evaluation"
 	"github.com/elrond-go/cmd/vat/scan"
-	"github.com/elrond-go/cmd/vat/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +18,7 @@ func TestNewRankedReport(t *testing.T) {
 func TestRankedReport_SortAndPopulateOneLowRiskTarget(t *testing.T) {
 	rankedReport := NewRankedReport()
 
-	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Open, 5)
+	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, core.HIGH, core.Open, 5)
 
 	rankedReport.populateReport(testTargetsSlice)
 	rankedReport.NodesAnalyzed = len(testTargetsSlice)
@@ -32,7 +32,7 @@ func TestRankedReport_SortAndPopulateOneLowRiskTarget(t *testing.T) {
 func TestRankedReport_SortAndPopulateTwoLowRiskTargets(t *testing.T) {
 	rankedReport := NewRankedReport()
 
-	testTargetsSlice := CreateEvaluatedTargetsTestSlice(2, utils.HIGH, utils.Open, 5)
+	testTargetsSlice := CreateEvaluatedTargetsTestSlice(2, core.HIGH, core.Open, 5)
 	rankedReport.populateReport(testTargetsSlice)
 	rankedReport.NodesAnalyzed = len(testTargetsSlice)
 	rankedReport.sortReport()
@@ -45,7 +45,7 @@ func TestRankedReport_SortAndPopulateTwoLowRiskTargets(t *testing.T) {
 func TestRankedReport_SortAndPopulateTwoMediumRiskTargets(t *testing.T) {
 	rankedReport := NewRankedReport()
 
-	testTargetsSlice := CreateEvaluatedTargetsTestSlice(2, utils.MID, utils.Open, 5)
+	testTargetsSlice := CreateEvaluatedTargetsTestSlice(2, core.MID, core.Open, 5)
 	rankedReport.populateReport(testTargetsSlice)
 	rankedReport.NodesAnalyzed = len(testTargetsSlice)
 	rankedReport.sortReport()
@@ -58,7 +58,7 @@ func TestRankedReport_SortAndPopulateTwoMediumRiskTargets(t *testing.T) {
 func TestRankedReport_SortAndPopulateTwoHighRiskTargets(t *testing.T) {
 	rankedReport := NewRankedReport()
 
-	testTargetsSlice := CreateEvaluatedTargetsTestSlice(2, utils.LOW, utils.Open, 5)
+	testTargetsSlice := CreateEvaluatedTargetsTestSlice(2, core.LOW, core.Open, 5)
 	rankedReport.populateReport(testTargetsSlice)
 	rankedReport.NodesAnalyzed = len(testTargetsSlice)
 	rankedReport.sortReport()
@@ -71,9 +71,9 @@ func TestRankedReport_SortAndPopulateTwoHighRiskTargets(t *testing.T) {
 func TestRankedReport_GetAllEvaluatedTargets(t *testing.T) {
 	rankedReport := NewRankedReport()
 
-	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, utils.LOW, utils.Open, 5)
-	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.MID, utils.Open, 5)...)
-	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Open, 5)...)
+	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, core.LOW, core.Open, 5)
+	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, core.MID, core.Open, 5)...)
+	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, core.HIGH, core.Open, 5)...)
 	rankedReport.populateReport(testTargetsSlice)
 	rankedReport.NodesAnalyzed = len(testTargetsSlice)
 	rankedReport.sortReport()
@@ -83,7 +83,7 @@ func TestRankedReport_GetAllEvaluatedTargets(t *testing.T) {
 	require.Equal(t, 3, len(allEvaluatedTargetsFromTestReport))
 }
 
-func CreateEvaluatedTargetsTestSlice(targets int, risk utils.SecureLevel, portStatus utils.PortStatus, noPorts int) (evaluatedTargets []evaluation.EvaluatedTarget) {
+func CreateEvaluatedTargetsTestSlice(targets int, risk core.SecureLevel, portStatus core.PortStatus, noPorts int) (evaluatedTargets []evaluation.EvaluatedTarget) {
 	ports := make([]scan.Port, 0)
 	judgements := make([]string, 0)
 	testTargets := make([]evaluation.EvaluatedTarget, 0)
@@ -92,13 +92,13 @@ func CreateEvaluatedTargetsTestSlice(targets int, risk utils.SecureLevel, portSt
 			0,
 			"test",
 			portStatus,
-			"test", utils.PortType(utils.TCP_ELROND)))
+			"test", core.PortType(core.TCP_ELROND)))
 		judgements = append(judgements, "test Judgement")
 	}
 
 	target := evaluation.EvaluatedTarget{
 		//identity:   newIdentity("test", ports),
-		//evaluation: newEvaluationResult(utils.NoEvaluation),
+		//evaluation: newEvaluationResult(core.NoEvaluation),
 	}
 	for i := 0; i < targets; i++ {
 		testTargets = append(testTargets, target)

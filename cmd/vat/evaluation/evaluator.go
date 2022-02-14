@@ -43,7 +43,7 @@ func (eT *EvaluatedTarget) calculateDeductionPoints() (deductionPoints int) {
 			} else {
 				judgement = core.JudgementFromPort
 			}
-			deductionPoints += eT.runJudgement(core.Importance, judgement)
+			deductionPoints += eT.runJudgement(port.Importance, judgement)
 		}
 	}
 

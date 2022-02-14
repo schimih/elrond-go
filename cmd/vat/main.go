@@ -22,6 +22,9 @@ import (
 	"github.com/elrond-go/cmd/vat/scan"
 )
 
+// constant used for process loop
+const ProcessLoopTime = time.Second * 5
+
 var log = logger.GetOrCreate("vat")
 
 func main() {
@@ -42,7 +45,7 @@ func main() {
 }
 
 func mainLoop(messenger p2p.Messenger, stop chan os.Signal) {
-	timer := time.NewTimer(time.Second * 5)
+	timer := time.NewTimer(ProcessLoopTime)
 	defer timer.Stop()
 
 	sF := scan.NewScannerFactory()
@@ -54,13 +57,11 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal) {
 	vatExport, _ := export.NewAnalysisManager()
 
 	for {
-		interval := time.Second * 5
-
 		analyzedTargets := a.StartJob(vatExport.AnalysisType)
 		evaluatedTargets, _ := report.RunEvaluation(analyzedTargets, vatExport.EvaluationType)
 		vatExport.CompleteRound(evaluatedTargets)
 
-		timer.Reset(interval)
+		timer.Reset(ProcessLoopTime)
 
 		select {
 		case <-timer.C:

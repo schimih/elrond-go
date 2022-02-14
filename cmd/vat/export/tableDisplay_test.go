@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/elrond-go/cmd/vat/utils"
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,9 +15,9 @@ func TestTableFormatterOutput(t *testing.T) {
 		header:    make([]string, 0),
 		dataLines: make([]*display.LineData, 0)}
 
-	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, utils.LOW, utils.Open, 5)
-	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.MID, utils.Open, 5)...)
-	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Open, 5)...)
+	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, core.LOW, core.Open, 5)
+	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, core.MID, core.Open, 5)...)
+	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, core.HIGH, core.Open, 5)...)
 	rankedReport.populateReport(testTargetsSlice)
 	rankedReport.NodesAnalyzed = len(testTargetsSlice)
 	rankedReport.sortReport()
@@ -46,9 +46,9 @@ func TestTableFormatterOutput_NoAccessiblePort(t *testing.T) {
 		header:    make([]string, 0),
 		dataLines: make([]*display.LineData, 0)}
 
-	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, utils.LOW, utils.Closed, 0)
-	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.MID, utils.Closed, 5)...)
-	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Closed, 5)...)
+	testTargetsSlice := CreateEvaluatedTargetsTestSlice(1, core.LOW, core.Closed, 0)
+	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, core.MID, core.Closed, 5)...)
+	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, core.HIGH, core.Closed, 5)...)
 	rankedReport.populateReport(testTargetsSlice)
 	rankedReport.NodesAnalyzed = len(testTargetsSlice)
 	rankedReport.sortReport()

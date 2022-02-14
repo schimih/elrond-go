@@ -23,3 +23,4 @@ const (
 )
 
 const SSH_ARGS = "ssh-run.cmd=ls -l /, ssh-run.username=myusername, ssh-run.password=mypassword"
+const DEFAULT_SSH_PORT = 22

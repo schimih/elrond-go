@@ -3,8 +3,8 @@ package export
 import (
 	"sort"
 
+	core "github.com/elrond-go/cmd/vat/core"
 	"github.com/elrond-go/cmd/vat/evaluation"
-	core "github.com/elrond-go/cmd/vat/utils"
 )
 
 type RankedReport struct {

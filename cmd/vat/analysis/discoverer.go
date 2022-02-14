@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/elrond-go/cmd/vat/utils"
+	"github.com/elrond-go/cmd/vat/core"
 )
 
 type P2pDiscoverer struct {
@@ -23,7 +23,7 @@ func (d *P2pDiscoverer) DiscoverNewTargets(targetsDiscoveredLastRound []Discover
 
 	for idx, address := range currentlyConnectedTargets {
 		targetAddress := strings.Split(address, "/")
-		target := MakeTarget(uint(idx), targetAddress[1], targetAddress[2], targetAddress[4], utils.NEW)
+		target := MakeTarget(uint(idx), targetAddress[1], targetAddress[2], targetAddress[4], core.NEW)
 		if !containsTarget(discoveredTargets, target) {
 			discoveredTargets = append(discoveredTargets, target)
 		}

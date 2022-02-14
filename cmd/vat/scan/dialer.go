@@ -6,31 +6,31 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type sshConfig struct {
+type sshDialer struct {
 	host     string
 	port     int
 	user     string
 	password string
 }
 
-func newDialer(host string) Dialer {
-	return &sshConfig{
+func newSshDialer(host string) *sshDialer {
+	return &sshDialer{
 		host:     host,
-		port:     22,
+		port:     DEFAULT_SSH_PORT,
 		user:     "testUsername",
 		password: "testPassword",
 	}
 }
 
-func (sC *sshConfig) Dial() (err error) {
+func (dialer *sshDialer) Dial() (err error) {
 	sshConfig := &ssh.ClientConfig{
-		User: sC.user,
-		Auth: []ssh.AuthMethod{ssh.Password(sC.password)},
+		User: dialer.user,
+		Auth: []ssh.AuthMethod{ssh.Password(dialer.password)},
 	}
 
 	// InsecureIgnoreHostKey returns a function that can be used for ClientConfig.HostKeyCallback to accept any host key.
 	sshConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-	_, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", sC.host, sC.port), sshConfig)
+	_, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", dialer.host, dialer.port), sshConfig)
 	if err != nil {
 		return err
 	}
@@ -39,6 +39,6 @@ func (sC *sshConfig) Dial() (err error) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sC *sshConfig) IsInterfaceNil() bool {
+func (sC *sshDialer) IsInterfaceNil() bool {
 	return sC == nil
 }

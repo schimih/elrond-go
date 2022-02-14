@@ -11,7 +11,16 @@ type ParserData struct {
 	Input             [][]byte
 	AnalyzedTargets   []ScannedTarget
 	Grammar           core.AnalysisType
-	SlicedParsedInput []*gonmap.NmapRun
+	slicedParsedInput []*gonmap.NmapRun
+}
+
+func CreateParser(input [][]byte, grammar core.AnalysisType) Parser {
+	return &ParserData{
+		Input:             input,
+		AnalyzedTargets:   make([]ScannedTarget, 0),
+		Grammar:           grammar,
+		slicedParsedInput: make([]*gonmap.NmapRun, 0),
+	}
 }
 
 func (pD *ParserData) Parse() (parsingResults []ScannedTarget) {
@@ -22,7 +31,7 @@ func (pD *ParserData) Parse() (parsingResults []ScannedTarget) {
 				log.Error(err.Error())
 			}
 		}
-		pD.SlicedParsedInput = append(pD.SlicedParsedInput, parsedNmapResult)
+		pD.slicedParsedInput = append(pD.slicedParsedInput, parsedNmapResult)
 	}
 
 	pD.translateInput()
@@ -31,7 +40,7 @@ func (pD *ParserData) Parse() (parsingResults []ScannedTarget) {
 }
 
 func (pD *ParserData) translateInput() {
-	for _, nmapRun := range pD.SlicedParsedInput {
+	for _, nmapRun := range pD.slicedParsedInput {
 		for hidx, host := range nmapRun.Hosts {
 			pD.translateTarget(hidx, host)
 		}
@@ -43,15 +52,6 @@ func (pD *ParserData) translateTarget(id int, host gonmap.Host) {
 	translatedPortSlice := pS.translatePortSlice()
 	analyzedTarget := NewScannedTarget(uint(id), host.Addresses[0].Addr, translatedPortSlice, core.SCANNED, pD.Grammar)
 	pD.AnalyzedTargets = append(pD.AnalyzedTargets, analyzedTarget)
-}
-
-func CreateParser(input [][]byte, grammar core.AnalysisType) Parser {
-	return &ParserData{
-		Input:             input,
-		AnalyzedTargets:   make([]ScannedTarget, 0),
-		Grammar:           grammar,
-		SlicedParsedInput: make([]*gonmap.NmapRun, 0),
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

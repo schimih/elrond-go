@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/elrond-go/cmd/vat/utils"
+	"github.com/elrond-go/cmd/vat/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,9 +16,9 @@ func TestXMLOutput(t *testing.T) {
 	rankedReport := NewRankedReport()
 	formatter := &XMLFormatter{}
 
-	testTargetsSlice := CreateEvaluatedTargetsTestSlice(3, utils.LOW, utils.Closed, 3)
-	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(2, utils.MID, utils.Closed, 5)...)
-	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, utils.HIGH, utils.Closed, 5)...)
+	testTargetsSlice := CreateEvaluatedTargetsTestSlice(3, core.LOW, core.Closed, 3)
+	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(2, core.MID, core.Closed, 5)...)
+	testTargetsSlice = append(testTargetsSlice, CreateEvaluatedTargetsTestSlice(1, core.HIGH, core.Closed, 5)...)
 	rankedReport.populateReport(testTargetsSlice)
 	rankedReport.NodesAnalyzed = len(testTargetsSlice)
 	rankedReport.sortReport()

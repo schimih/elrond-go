@@ -12,7 +12,7 @@ func (pS *PoliteScanner) Scan() (res []byte, err error) {
 	pS.mutScanner.Lock()
 	defer pS.mutScanner.Unlock()
 
-	dialer := newDialer(pS.Host)
+	dialer := newSshDialer(pS.Host)
 	err = dialer.Dial()
 	if err != nil {
 		return nil, err
