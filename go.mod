@@ -1,4 +1,4 @@
-module github.com/ElrondNetwork/elrond-go
+module github.com/elrond-go
 
 go 1.13
 
@@ -9,6 +9,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.4
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.12
+	github.com/ElrondNetwork/elrond-go v1.2.40
 	github.com/ElrondNetwork/elrond-go-core v1.1.2
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
@@ -28,6 +29,8 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
+	github.com/jinzhu/gorm v1.9.16
+	github.com/lair-framework/go-nmap v0.0.0-20191202052157-3507e0b03523
 	github.com/libp2p/go-libp2p v0.14.4
 	github.com/libp2p/go-libp2p-core v0.8.6
 	github.com/libp2p/go-libp2p-kad-dht v0.13.1
